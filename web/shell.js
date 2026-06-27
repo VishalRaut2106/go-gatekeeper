@@ -1,82 +1,41 @@
 'use strict';
 /**
- * Gatekeeper Shell — Terminal Client v3
- * - Fixed output buffering (no more character-by-character splits)
- * - Inline approval bar instead of big modal popup
+ * Gatekeeper Shell — Terminal Client (Guest Only)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── DOM ────────────────────────────────────────────── */
   const tBody        = document.getElementById('tBody');
   const outputLog    = document.getElementById('outputLog');
   const inputDisplay = document.getElementById('inputDisplay');
   const hiddenInput  = document.getElementById('hiddenInput');
   const cursor       = document.getElementById('cursor');
   const ps1Wrap      = document.getElementById('ps1Wrap');
-  const ps1User      = document.getElementById('ps1User');
   const ps1Path      = document.getElementById('ps1Path');
   const tTitle       = document.getElementById('tTitle');
   const tRole        = document.getElementById('tRole');
-  const footLeft     = document.getElementById('footLeft');
   const footMid      = document.getElementById('footMid');
-  const footRight    = document.getElementById('footRight');
 
-  // Approval bar (host)
-  const apvBar  = document.getElementById('apvBar');
-  const apvCmd  = document.getElementById('apvCmd');
-
-  // Guest waiting bar
   const waitBar = document.getElementById('waitBar');
   const waitMsg = document.getElementById('waitMsg');
-
-  // Error banner
   const errBanner = document.getElementById('errBanner');
   const errMsg    = document.getElementById('errMsg');
 
-  /* ── Role ───────────────────────────────────────────── */
   const params = new URLSearchParams(location.search);
-  const role   = params.get('role') === 'host' ? 'host' : 'guest';
   const code   = params.get('code') || '';
 
-  tRole.textContent = role.toUpperCase();
-  tRole.classList.add(role);
-  ps1User.textContent = role === 'host' ? 'host' : 'guest';
-  tTitle.textContent  = `gatekeeper \u2014 ${role}`;
+  tRole.textContent = 'GUEST';
+  tRole.classList.add('guest');
+  tTitle.textContent  = `gatekeeper \u2014 guest`;
 
-  if (role === 'host') {
-    footRight.textContent = 'share \u00b7 help \u00b7 status';
-  } else {
-    footRight.textContent = 'commands need host approval';
-  }
-
-  /* ── State ──────────────────────────────────────────── */
-  let isReady       = false;
-  let isApprPending = false;
-  let roomCode      = '';   // assigned by server after host connects
-  let roomGuestURL  = '';   // full guest URL for this room
-
+  let isReady = false;
   const cmdHistory = [];
   let histIdx  = -1;
   let histTemp = '';
   let tabLast  = '';
   let tabCount = 0;
+  let cwdLabel = '~'; 
 
-  let cwdLabel = '~'; // shadow cwd for prompt display
-
-  /* ── Output buffer ──────────────────────────────────── */
-  /**
-   * We accumulate shell output in outputBuf.
-   * system_shell.js writes:
-   *   - "$ "      at startup (initial prompt, no leading \n)
-   *   - "\n$ "    after each command completes
-   *
-   * We flush ONLY when:
-   *   (a) we have a complete prompt at the end  → mark isReady, render before
-   *   (b) we have a full line ending with \n    → render that line(s)
-   *
-   * We NEVER flush partial lines. This prevents "p", "e", "r" on separate rows.
-   */
   let outBuf = '';
 
   function pushOutput(text, cls) {
@@ -86,47 +45,35 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drainBuf(cls) {
-    // Loop until we can't extract anything more
-    // eslint-disable-next-line no-constant-condition
     while (true) {
-
-      // ── Case A: initial "$ " prompt (startup only)
       if (outBuf === '$ ' || outBuf === '$ \n') {
         outBuf = '';
         isReady = true;
         scrollBot();
         break;
       }
-
-      // ── Case B: "\n$ " at the end of buffer (command finished)
       const pi = outBuf.lastIndexOf('\n$ ');
       if (pi !== -1 && pi + 3 >= outBuf.length - 1) {
-        // Everything before the prompt is output content
         const body = outBuf.slice(0, pi);
-        outBuf = outBuf.slice(pi + 3).trimStart(); // skip past "\n$ "
+        outBuf = outBuf.slice(pi + 3).trimStart();
         if (body) renderBlock(body, cls);
         isReady = true;
         scrollBot();
-        // Continue loop — outBuf might have more
         continue;
       }
-
-      // ── Case C: flush complete lines, keep last 3 chars buffered
-      //           (so we never split "\n$ " across renders)
-      const GUARD = 3; // length of "\n$ "
+      const GUARD = 3; 
       if (outBuf.length > GUARD) {
         const candidate = outBuf.slice(0, outBuf.length - GUARD);
         const lastNL    = candidate.lastIndexOf('\n');
         if (lastNL >= 0) {
           const toRender = outBuf.slice(0, lastNL);
-          outBuf = outBuf.slice(lastNL + 1); // skip past that \n
+          outBuf = outBuf.slice(lastNL + 1);
           if (toRender.trim()) renderBlock(toRender, cls);
           scrollBot();
           continue;
         }
       }
-
-      break; // nothing more to drain right now
+      break; 
     }
   }
 
@@ -140,9 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
     outputLog.appendChild(el);
   }
 
-  /* ── WebSocket ──────────────────────────────────────── */
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${proto}//${location.host}/ws?role=${role}&code=${code}`;
+  const wsUrl = `${proto}//${location.host}/ws?role=guest&code=${code}`;
   let ws = null;
 
   function connect() {
@@ -151,13 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ws.onopen = () => {
       isReady = true;
       outputLog.innerHTML = '';
-      footLeft.textContent = 'gatekeeper';
-
-      if (role === 'guest') {
-        writeLn('Connected as GUEST \u2014 commands need host approval before running.', 'warn');
-        writeLn('', '');
-      }
-      // host greeting + room info comes via room_info message from server
+      writeLn('Connected to Host \u2014 commands need host approval before running.', 'warn');
+      writeLn('', '');
       hiddenInput.focus();
     };
 
@@ -172,8 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    ws.onerror = () => {};
-
     ws.onmessage = ev => {
       try { route(JSON.parse(ev.data)); }
       catch (e) { console.error('ws parse:', e); }
@@ -182,99 +121,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   connect();
 
-  /* ── Message router ─────────────────────────────────── */
   function route(msg) {
     switch (msg.type) {
-
       case 'stdout':
         pushOutput(msg.data, '');
         break;
-
       case 'stderr':
         pushOutput(msg.data, 'err');
         break;
-
       case 'status':
-        if (role === 'guest') {
-          if (msg.msg) {
-            waitMsg.textContent   = msg.msg;
-            waitBar.style.display = 'flex';
-            footMid.textContent   = '\u23f3 waiting';
-            isReady = false;
-          } else {
-            waitBar.style.display = 'none';
-            footMid.textContent   = '';
-            isReady = true;
-            hiddenInput.focus();
-          }
+        if (msg.msg) {
+          waitMsg.textContent   = msg.msg;
+          waitBar.style.display = 'flex';
+          footMid.textContent   = '\u23f3 waiting';
+          isReady = false;
+        } else {
+          waitBar.style.display = 'none';
+          footMid.textContent   = '';
+          isReady = true;
+          hiddenInput.focus();
         }
         break;
-
-      case 'room_info':
-        // Server assigned a room to this host
-        roomCode     = msg.roomCode || '';
-        roomGuestURL = msg.guestURL || '';
-        // Update title and footer
-        tTitle.textContent  = `gatekeeper — host [${roomCode}]`;
-        footLeft.textContent = `room ${roomCode}`;
-        writeLn(`Room created. Code: ${roomCode}`, 'ok');
-        writeLn(`Type  share  to print the guest invite link.`, 'dim');
-        writeLn('', '');
-        break;
-
-      case 'approval_request': {
-        if (role === 'host') {
-          isApprPending = true;
-          showApprovalBar(msg.command, msg.queue || 0);
-        }
-        break;
-      }
-
       case 'completions':
         handleCompletions(msg.hits, msg.prefix);
         break;
-
       case 'exit':
-        writeLn('\n[process exited]', 'dim');
+        writeLn('\n[host ended session]', 'dim');
         isReady = false;
         break;
     }
   }
 
-  /* ── Approval bar (host) ────────────────────────────── */
-  function showApprovalBar(cmd, queueLen) {
-    apvCmd.textContent = cmd;
-    apvBar.classList.remove('hidden');
-    const keysEl = apvBar.querySelector('.apv-keys');
-    if (keysEl) {
-      const queueNote = queueLen > 0
-        ? ` &nbsp;<span style="color:var(--dim)">(+${queueLen} more queued)</span>`
-        : '';
-      keysEl.innerHTML =
-        `[ <span class="k-y">y</span> ] approve` +
-        ` &nbsp; [ <span class="k-n">n</span> ] deny` +
-        queueNote;
-    }
-    footMid.textContent = '\u26a0 approval pending';
-  }
-
-  function hideApprovalBar() {
-    apvBar.classList.add('hidden');
-    footMid.textContent = '';
-    isApprPending = false;
-  }
-
-  function doApprove() {
-    hideApprovalBar();
-    ws.send(JSON.stringify({ type: 'approve_command' }));
-  }
-
-  function doDeny() {
-    hideApprovalBar();
-    ws.send(JSON.stringify({ type: 'deny_command' }));
-  }
-
-  /* ── Keyboard ───────────────────────────────────────── */
   document.addEventListener('click', () => {
     if (!hiddenInput.disabled) hiddenInput.focus();
   });
@@ -285,17 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   hiddenInput.addEventListener('keydown', e => {
-
-    // Approval: y/n when bar is shown (host only)
-    if (role === 'host' && isApprPending) {
-      if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); doApprove(); return; }
-      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); doDeny();    return; }
-    }
-
     if (!isReady) { e.preventDefault(); return; }
 
     switch (e.key) {
-
       case 'Enter': {
         e.preventDefault();
         const cmd = hiddenInput.value;
@@ -305,10 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!cmd.trim()) return;
 
-        // client-side clear
         if (cmd.trim() === 'clear' || cmd.trim() === 'cls') {
           outputLog.innerHTML = '';
-          if (role === 'host') ws.send(JSON.stringify({ type: 'stdin', data: 'clear\n' }));
           return;
         }
 
@@ -316,42 +183,29 @@ document.addEventListener('DOMContentLoaded', () => {
         echoCmd(cmd);
         isReady = false;
 
-        if (role === 'host') {
-          ws.send(JSON.stringify({ type: 'stdin', data: cmd + '\n' }));
-        } else {
-          ws.send(JSON.stringify({ type: 'submit_command', command: cmd }));
-        }
+        ws.send(JSON.stringify({ type: 'submit_command', command: cmd }));
         scrollBot();
         break;
       }
-
       case 'Tab':
         e.preventDefault();
         ws.send(JSON.stringify({ type: 'complete', command: hiddenInput.value }));
         break;
-
       case 'ArrowUp':
         e.preventDefault();
         navHist(1);
         break;
-
       case 'ArrowDown':
         e.preventDefault();
         navHist(-1);
         break;
-
       case 'c':
         if (e.ctrlKey) {
           e.preventDefault();
-          const partial = hiddenInput.value;
           hiddenInput.value = '';
           inputDisplay.textContent = '';
-          echoCmd((partial || '') + '^C');
-          histIdx = -1;
-          if (role === 'host') ws.send(JSON.stringify({ type: 'stdin', data: '\x03' }));
         }
         break;
-
       case 'l':
         if (e.ctrlKey) {
           e.preventDefault();
@@ -361,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* ── Tab completion ─────────────────────────────────── */
   function handleCompletions(hits, prefix) {
     const line = hiddenInput.value;
     if (!hits || hits.length === 0) { flashCursor(); tabLast = ''; tabCount = 0; return; }
@@ -374,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // common prefix
     const stripped = hits.map(h => h.replace(/[ /]$/, ''));
     const common = stripped.reduce((a, b) => {
       let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
@@ -389,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // double-tab → list
     if (line === tabLast) tabCount++; else { tabLast = line; tabCount = 1; }
     if (tabCount === 1) { flashCursor(); return; }
 
@@ -399,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollBot();
   }
 
-  /* ── History ────────────────────────────────────────── */
   function navHist(dir) {
     if (!cmdHistory.length) return;
     if (histIdx === -1) histTemp = hiddenInput.value;
@@ -409,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
     inputDisplay.textContent = val;
   }
 
-  /* ── Helpers ────────────────────────────────────────── */
   function echoCmd(cmd) {
     const div = document.createElement('div');
     div.className = 'ln cmd';
@@ -420,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
     div.appendChild(sp);
     outputLog.appendChild(div);
 
-    // update shadow cwd
     const t = cmd.trim().split(/\s+/);
     if (t[0] === 'cd' && t[1]) {
       if (t[1] === '~') cwdLabel = '~';
