@@ -6,8 +6,8 @@ services:
     plan: free
     buildCommand: go build -ldflags="-s -w" -o gatekeeper-server ./cmd/server
     startCommand: ./gatekeeper-server
-    healthCheckPath: /
-    autoDeploy: true
+    healthCheckPath: /health
+    autoDeploy: false   # Deployments controlled by GitHub Actions (render-deploy.yml)
     envVars:
       - key: PORT
         value: 10000
