@@ -1,6 +1,6 @@
 {
   "name": "gatekeeper-shell",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "The only terminal sharing tool safe enough to post on Twitter. Zero-trust pair programming.",
   "main": "npm/run.js",
   "files": [
