@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gatekeeper-relay
+    env: go
+    buildCommand: go build -o gatekeeper-server ./cmd/server
+    startCommand: ./gatekeeper-server
+    envVars:
+      - key: PORT
+        value: 8080
