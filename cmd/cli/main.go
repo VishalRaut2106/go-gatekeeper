@@ -96,43 +96,79 @@ func main() {
 		}
 	}()
 
+	// Read Stdin concurrently
+	inputChan := make(chan string)
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				break
+			}
+			inputChan <- line
+		}
+	}()
+
+	fmt.Print("\nHost> ")
+	promptPrinted := false
+
 	// Keep main thread alive for terminal input / approvals
-	reader := bufio.NewReader(os.Stdin)
 	for {
 		mu.Lock()
 		cmd := active
 		mu.Unlock()
 
-		if cmd != nil {
+		if cmd != nil && !promptPrinted {
 			fmt.Printf("\n⚠️ Guest wants to run: %s\nApprove? [Y/n]: ", cmd.Command)
-			ans, _ := reader.ReadString('\n')
-			ans = strings.TrimSpace(strings.ToLower(ans))
+			promptPrinted = true
+		}
 
-			mu.Lock()
-			active = nil
-			mu.Unlock()
-
-			if ans == "" || ans == "y" {
-				wsConn.WriteJSON(Message{Type: "status", Msg: ""})
-
+		select {
+		case line := <-inputChan:
+			line = strings.TrimSpace(line)
+			if cmd != nil {
+				ans := strings.ToLower(line)
 				mu.Lock()
-				shellBusy = true
+				active = nil
 				mu.Unlock()
+				promptPrinted = false
 
-				runCommand(cmd.Command)
+				if ans == "" || ans == "y" {
+					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
 
-				mu.Lock()
-				shellBusy = false
-				go processNext()
-				mu.Unlock()
+					mu.Lock()
+					shellBusy = true
+					mu.Unlock()
+
+					runCommand(cmd.Command)
+
+					mu.Lock()
+					shellBusy = false
+					go processNext()
+					mu.Unlock()
+				} else {
+					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
+					wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
+					wsConn.WriteJSON(Message{Type: "stdout", Data: "\n$ "})
+					processNext()
+				}
+				fmt.Print("Host> ")
 			} else {
-				wsConn.WriteJSON(Message{Type: "status", Msg: ""})
-				wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
-				wsConn.WriteJSON(Message{Type: "stdout", Data: "\n$ "})
-				processNext()
+				if line != "" {
+					mu.Lock()
+					shellBusy = true
+					mu.Unlock()
+
+					runCommand(line)
+
+					mu.Lock()
+					shellBusy = false
+					go processNext()
+					mu.Unlock()
+				}
+				fmt.Print("Host> ")
 			}
-		} else {
-			time.Sleep(100 * time.Millisecond)
+		case <-time.After(100 * time.Millisecond):
 		}
 	}
 }
