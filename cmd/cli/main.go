@@ -104,7 +104,7 @@ func main() {
 		mu.Unlock()
 
 		if cmd != nil {
-			fmt.Printf("\n⚠️ Guest wants to run: %s\nApprove? [y/N]: ", cmd.Command)
+			fmt.Printf("\n⚠️ Guest wants to run: %s\nApprove? [Y/n]: ", cmd.Command)
 			ans, _ := reader.ReadString('\n')
 			ans = strings.TrimSpace(strings.ToLower(ans))
 
@@ -112,7 +112,7 @@ func main() {
 			active = nil
 			mu.Unlock()
 
-			if ans == "y" {
+			if ans == "" || ans == "y" {
 				wsConn.WriteJSON(Message{Type: "status", Msg: ""})
 
 				mu.Lock()
@@ -200,11 +200,14 @@ func runCommand(line string) {
 		}
 		err := os.Chdir(target)
 		if err != nil {
-			wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("cd: %v\n", err)})
+			msg := fmt.Sprintf("cd: %v\n", err)
+			fmt.Fprintln(os.Stderr, msg)
+			wsConn.WriteJSON(Message{Type: "stderr", Data: msg})
 		}
 		return
 	case "pwd":
 		dir, _ := os.Getwd()
+		fmt.Println(dir)
 		wsConn.WriteJSON(Message{Type: "stdout", Data: dir + "\n"})
 		return
 	case "clear", "cls":
@@ -241,6 +244,9 @@ func runCommand(line string) {
 			fmt.Println(text)
 			wsConn.WriteJSON(Message{Type: "stdout", Data: text + "\n"})
 		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("stdout scanner error: %v\n", err)
+		}
 	}()
 
 	go func() {
@@ -250,6 +256,9 @@ func runCommand(line string) {
 			text := scanner.Text()
 			fmt.Fprintln(os.Stderr, text)
 			wsConn.WriteJSON(Message{Type: "stderr", Data: text + "\n"})
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("stderr scanner error: %v\n", err)
 		}
 	}()
 
