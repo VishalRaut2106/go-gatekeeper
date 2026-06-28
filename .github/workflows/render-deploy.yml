@@ -1,0 +1,47 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [master]
+    paths:
+      # Only redeploy when server code or config actually changes
+      - 'cmd/server/**'
+      - 'web/**'
+      - 'render.yaml'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render Deploy
+        run: |
+          echo "🚀 Triggering Render deployment..."
+          HTTP_STATUS=$(curl -s -o /tmp/render_response.json -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+
+          cat /tmp/render_response.json
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Render deploy triggered successfully (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Render deploy failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Render Deployment Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Service: **gatekeeper-relay**" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Monitor at: https://dashboard.render.com" >> $GITHUB_STEP_SUMMARY

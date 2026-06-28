@@ -36,28 +36,81 @@ jobs:
       - name: Test
         run: go test ./...
 
-  # ── AI Code Review — Gemini (free, no credit card) ─────────────────────────
+  # ── AI Code Review via Gemini REST API ────────────────────────────────────
   #
-  #  Get your free API key:
+  #  Requires: GEMINI_API_KEY secret
   #    1. Go to https://aistudio.google.com/app/apikey
   #    2. Click "Create API key" (free, no card needed)
-  #    3. Add it as a repo secret named GEMINI_API_KEY:
-  #       GitHub → repo Settings → Secrets → Actions → New repository secret
+  #    3. Add as repo secret named GEMINI_API_KEY
   #
   ai-review:
     name: Gemini AI Review
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Gemini Code Review
-        uses: google-gemini/gemini-code-review-action@main
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          github_token:   ${{ secrets.GITHUB_TOKEN }}
-          # Model — gemini-2.0-flash is free tier and very capable
-          model:          gemini-2.0-flash
-          # Post review as inline PR comments
-          pull_request_id: ${{ github.event.pull_request.number }}
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch the diff for this PR (limit to 8000 chars to stay in Gemini's context)
+          DIFF=$(gh pr diff ${{ github.event.pull_request.number }} | head -c 8000)
+          # Save to file to avoid shell escaping issues
+          echo "$DIFF" > /tmp/pr_diff.txt
+          echo "Diff captured ($(wc -c < /tmp/pr_diff.txt) bytes)"
+
+      - name: Review with Gemini
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          DIFF=$(cat /tmp/pr_diff.txt)
+
+          # Build the request JSON using jq to safely escape the diff
+          REQUEST=$(jq -n \
+            --arg diff "$DIFF" \
+            '{
+              "contents": [{
+                "parts": [{
+                  "text": ("You are a senior Go/JavaScript code reviewer. Review this pull request diff and provide concise, actionable feedback.\n\nFocus on:\n- Bugs or logic errors\n- Security issues\n- Performance problems\n- Go best practices\n- Missing error handling\n\nBe constructive and specific. Keep response under 600 words.\n\nDiff:\n" + $diff)
+                }]
+              }],
+              "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 1024
+              }
+            }')
+
+          # Call Gemini API
+          RESPONSE=$(curl -s \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST")
+
+          # Extract the text from the response
+          REVIEW=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // "Gemini could not generate a review."')
+
+          echo "REVIEW<<EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEW" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const review = `${{ steps.gemini.outputs.REVIEW }}`;
+            const body = `## 🤖 Gemini AI Code Review\n\n${review}\n\n---\n*Reviewed by Gemini 2.0 Flash · [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: body
+            });
