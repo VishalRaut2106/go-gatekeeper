@@ -86,14 +86,14 @@ jobs:
               "messages": [
                 {
                   "role": "system",
-                  "content": "You are a senior Go/JavaScript code reviewer. Review the pull request diff and provide concise, actionable feedback. Focus on: bugs, security issues, performance, Go best practices, and error handling. Be constructive and specific. Keep response under 500 words."
+                  "content": "You are a senior staff software engineer conducting a peer code review. Provide direct, objective, and actionable feedback on the code changes. Focus on: bugs, security issues, performance bottlenecks, idiomatic Go conventions, and robust error handling. Do not include introductory greetings, conversational filler, or self-references to being an AI. Start directly with the feedback."
                 },
                 {
                   "role": "user",
-                  "content": ("Here is the PR diff to review:\n\n" + $diff)
+                  "content": ("Here is the diff to review:\n\n" + $diff)
                 }
               ],
-              "temperature": 0.2,
+              "temperature": 0.1,
               "max_tokens": 1024
             }')
 
@@ -106,15 +106,15 @@ jobs:
 
           echo "=== HTTP Status: $HTTP_STATUS ==="
           if [ "$HTTP_STATUS" = "200" ]; then
-            jq -r '.choices[0].message.content // "⚠️ Unexpected empty response from Mistral."' \
+            jq -r '.choices[0].message.content // "No issues identified in these changes."' \
               /tmp/mistral_raw.json > /tmp/mistral_review.txt
             echo "review_ready=true" >> $GITHUB_OUTPUT
           elif [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "403" ]; then
-            echo "❌ Mistral API key is invalid. Add MISTRAL_API_KEY to repo secrets." \
+            echo "Authentication failed. Please verify the MISTRAL_API_KEY in repository secrets." \
               > /tmp/mistral_review.txt
             echo "review_ready=true" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ Mistral API error (HTTP $HTTP_STATUS). Check the workflow logs." \
+            echo "Code review automation encountered an error (HTTP $HTTP_STATUS)." \
               > /tmp/mistral_review.txt
             echo "review_ready=true" >> $GITHUB_OUTPUT
           fi
@@ -130,12 +130,32 @@ jobs:
           script: |
             const fs = require('fs');
             const review = fs.readFileSync('/tmp/mistral_review.txt', 'utf8').trim();
-            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-            const body = `## 🤖 Mistral AI Code Review\n\n${review}\n\n---\n*Reviewed by Mistral Codestral · [View run](${runUrl})*`;
 
+            // Fetch existing comments on the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            // Find and delete any previous review comments from this bot to prevent thread clutter
+            const previousBotComments = comments.filter(c => c.user.login === 'github-actions[bot]');
+            for (const comment of previousBotComments) {
+              try {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id,
+                });
+              } catch (err) {
+                console.log(`Failed to delete comment ${comment.id}: ${err.message}`);
+              }
+            }
+
+            // Post the clean, professional review
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo:  context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: body
+              body: review
             });
