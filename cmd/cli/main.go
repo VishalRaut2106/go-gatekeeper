@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -40,6 +41,11 @@ var (
 	active    *PendingCmd
 	mu        sync.Mutex
 	isWin     = runtime.GOOS == "windows"
+
+	shellCmd *exec.Cmd
+	shellIn  io.WriteCloser
+	shellOut io.ReadCloser
+	shellErr io.ReadCloser
 )
 
 func main() {
@@ -68,6 +74,8 @@ func main() {
 	}
 	wsConn = conn
 	defer conn.Close()
+
+	startShell()
 
 	// Initial prompt to start the frontend state with the correct path
 	sendPrompt(false)
@@ -119,7 +127,12 @@ func main() {
 		mu.Unlock()
 
 		if cmd != nil && !promptPrinted {
-			fmt.Printf("\n⚠️ Guest wants to run: %s\nApprove? [Y/n]: ", cmd.Command)
+			path := getFormattedPath()
+			if isDangerous(cmd.Command) {
+				fmt.Printf("\n\x1b[31;1m🚨 WARNING: DANGEROUS COMMAND DETECTED 🚨\x1b[0m\nGuest ➜ %s> \x1b[31;1m%s\x1b[0m\nApprove? [Y/n]: ", path, cmd.Command)
+			} else {
+				fmt.Printf("\nGuest ➜ %s> %s\nApprove? [Y/n]: ", path, cmd.Command)
+			}
 			promptPrinted = true
 		}
 
@@ -141,11 +154,6 @@ func main() {
 					mu.Unlock()
 
 					runCommand(cmd.Command)
-
-					mu.Lock()
-					shellBusy = false
-					go processNext()
-					mu.Unlock()
 				} else {
 					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
 					wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
@@ -161,11 +169,6 @@ func main() {
 					mu.Unlock()
 
 					runCommand(line)
-
-					mu.Lock()
-					shellBusy = false
-					go processNext()
-					mu.Unlock()
 				}
 				printHostPrompt(false)
 			}
@@ -211,12 +214,74 @@ func processNext() {
 	})
 }
 
-// runCommand executes a command, processing built-ins first
-func runCommand(line string) {
-	defer sendPrompt(true)
+const cmdDoneMarker = "---GATEKEEPER_CMD_DONE---"
 
+func startShell() {
+	if isWin {
+		shellCmd = exec.Command("powershell.exe", "-NoProfile")
+	} else {
+		shellCmd = exec.Command("/bin/bash")
+	}
+
+	shellIn, _ = shellCmd.StdinPipe()
+	shellOut, _ = shellCmd.StdoutPipe()
+	shellErr, _ = shellCmd.StderrPipe()
+
+	err := shellCmd.Start()
+	if err != nil {
+		log.Fatal("Failed to start background shell:", err)
+	}
+
+	go func() {
+		scanner := bufio.NewScanner(shellOut)
+		for scanner.Scan() {
+			text := scanner.Text()
+			if strings.TrimSpace(text) == cmdDoneMarker {
+				mu.Lock()
+				shellBusy = false
+				go processNext()
+				mu.Unlock()
+				sendPrompt(true)
+				continue
+			}
+			fmt.Println(text)
+			wsConn.WriteJSON(Message{Type: "stdout", Data: text + "\n"})
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(shellErr)
+		for scanner.Scan() {
+			text := scanner.Text()
+			fmt.Fprintln(os.Stderr, text)
+			wsConn.WriteJSON(Message{Type: "stderr", Data: text + "\n"})
+		}
+	}()
+}
+
+func isDangerous(cmd string) bool {
+	parts := strings.Fields(strings.ToLower(cmd))
+	dangerous := map[string]bool{
+		"rm": true, "del": true, "format": true, "sudo": true,
+		"remove-item": true, "set-executionpolicy": true, "drop": true,
+	}
+	for _, p := range parts {
+		if dangerous[p] {
+			return true
+		}
+	}
+	return false
+}
+
+// runCommand executes a command by piping it to the persistent shell
+func runCommand(line string) {
 	line = strings.TrimSpace(line)
 	if line == "" {
+		mu.Lock()
+		shellBusy = false
+		go processNext()
+		mu.Unlock()
+		sendPrompt(true)
 		return
 	}
 
@@ -230,77 +295,44 @@ func runCommand(line string) {
 	case "cd":
 		target := "."
 		if len(parts) > 1 {
-			target = parts[1]
+			target = strings.Join(parts[1:], " ")
 		}
 		if target == "~" {
 			target, _ = os.UserHomeDir()
 		}
-		err := os.Chdir(target)
-		if err != nil {
-			msg := fmt.Sprintf("cd: %v\n", err)
-			fmt.Fprintln(os.Stderr, msg)
-			wsConn.WriteJSON(Message{Type: "stderr", Data: msg})
-		}
-		return
+		os.Chdir(target)
 	case "pwd":
 		dir, _ := os.Getwd()
 		fmt.Println(dir)
 		wsConn.WriteJSON(Message{Type: "stdout", Data: dir + "\n"})
-		return
 	case "clear", "cls":
+		mu.Lock()
+		shellBusy = false
+		go processNext()
+		mu.Unlock()
+		sendPrompt(true)
 		return
 	case "exit", "quit":
 		wsConn.WriteJSON(Message{Type: "stdout", Data: "Session ended.\n"})
 		os.Exit(0)
 	}
 
-	// System command
-	var cmd *exec.Cmd
+	var wrappedCmd string
 	if isWin {
-		cmd = exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", line)
+		wrappedCmd = fmt.Sprintf("%s\r\nWrite-Output '%s'\r\n", line, cmdDoneMarker)
 	} else {
-		cmd = exec.Command("/bin/bash", "-c", line)
+		wrappedCmd = fmt.Sprintf("%s\necho '%s'\n", line, cmdDoneMarker)
 	}
 
-	stdout, _ := cmd.StdoutPipe()
-	stderr, _ := cmd.StderrPipe()
-
-	if err := cmd.Start(); err != nil {
-		wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("%s: command not found\n", parts[0])})
-		return
+	_, err := shellIn.Write([]byte(wrappedCmd))
+	if err != nil {
+		wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("Failed to run command: %v\n", err)})
+		mu.Lock()
+		shellBusy = false
+		go processNext()
+		mu.Unlock()
+		sendPrompt(true)
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			text := scanner.Text()
-			fmt.Println(text)
-			wsConn.WriteJSON(Message{Type: "stdout", Data: text + "\n"})
-		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("stdout scanner error: %v\n", err)
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			text := scanner.Text()
-			fmt.Fprintln(os.Stderr, text)
-			wsConn.WriteJSON(Message{Type: "stderr", Data: text + "\n"})
-		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("stderr scanner error: %v\n", err)
-		}
-	}()
-
-	wg.Wait()
-	cmd.Wait()
 }
 
 func getFormattedPath() string {
@@ -318,15 +350,15 @@ func getFormattedPath() string {
 func printHostPrompt(leadingNewline bool) {
 	path := getFormattedPath()
 	if leadingNewline {
-		fmt.Printf("\nhost:%s> ", path)
+		fmt.Printf("\n%s> ", path)
 	} else {
-		fmt.Printf("host:%s> ", path)
+		fmt.Printf("%s> ", path)
 	}
 }
 
 func sendPrompt(leadingNewline bool) {
 	path := getFormattedPath()
-	prompt := path + " $ "
+	prompt := path + "> "
 	if leadingNewline {
 		prompt = "\n" + prompt
 	}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gatekeeper Shell - Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { color: #58a6ff; border-bottom: 1px solid #21262d; padding-bottom: 10px; }
+        h2 { color: #f0883e; margin-top: 30px; }
+        code {
+            background-color: #161b22;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, SF Pro Mono, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #161b22;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #30363d;
+        }
+        pre code { padding: 0; background-color: transparent; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Gatekeeper Shell Docs</h1>
+        <p>Welcome to the official documentation for Gatekeeper Shell, a secure, collaborative, remote terminal wrapper.</p>
+        
+        <h2>Quick Installation</h2>
+        <p>Ensure you have Node.js installed, then execute:</p>
+        <pre><code>npx gatekeeper-shell</code></pre>
+        
+        <h2>Self-Hosting the Relay Server</h2>
+        <p>If you prefer to host your own relay, clone the repository and run:</p>
+        <pre><code>go run ./cmd/server</code></pre>
+    </div>
+</body>
+</html>
