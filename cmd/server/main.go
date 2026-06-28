@@ -254,6 +254,8 @@ func guestLoop(conn *websocket.Conn, r *Room) {
 	}
 }
 
+// handleHealth responds with the current server status, uptime, active rooms, and total connections.
+// It is used by Render for monitoring application health.
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	roomsMu.RLock()
 	activeRooms := len(rooms)
