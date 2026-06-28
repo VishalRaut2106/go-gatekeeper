@@ -9,7 +9,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
   id-token: write   # required for npm provenance (bypasses OTP/2FA)
 
 jobs:
@@ -27,13 +27,14 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      # Strip the leading 'v' from the tag (v2.0.1 → 2.0.1) and bump package.json
+      # Strip the leading 'v' from the tag (v2.0.1 → 2.0.1) and bump package.json + cmd/server/main.go
       - name: Set package version
         run: |
           RAW_VERSION="${{ github.event.inputs.version }}"
           VERSION="${RAW_VERSION#v}"
           echo "Publishing version: $VERSION"
           npm version "$VERSION" --no-git-tag-version
+          sed -i "s/\"version\":     \"[0-9.]*\"/\"version\":     \"$VERSION\"/g" cmd/server/main.go
 
       # Validate package before publishing
       - name: Dry-run check
@@ -45,6 +46,16 @@ jobs:
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit and push version bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json cmd/server/main.go
+          git commit -m "chore: bump version to ${{ github.event.inputs.version }} [skip ci]" || echo "No changes to commit"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
         run: |
