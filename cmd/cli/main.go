@@ -69,8 +69,8 @@ func main() {
 	wsConn = conn
 	defer conn.Close()
 
-	// Initial prompt to start the frontend state
-	wsConn.WriteJSON(Message{Type: "stdout", Data: "$ "})
+	// Initial prompt to start the frontend state with the correct path
+	sendPrompt(false)
 
 	// Handle messages from server
 	go func() {
@@ -109,7 +109,7 @@ func main() {
 		}
 	}()
 
-	fmt.Print("\nHost> ")
+	printHostPrompt(true)
 	promptPrinted := false
 
 	// Keep main thread alive for terminal input / approvals
@@ -149,10 +149,10 @@ func main() {
 				} else {
 					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
 					wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
-					wsConn.WriteJSON(Message{Type: "stdout", Data: "\n$ "})
+					sendPrompt(true)
 					processNext()
 				}
-				fmt.Print("Host> ")
+				printHostPrompt(false)
 			} else {
 				if line != "" {
 					wsConn.WriteJSON(Message{Type: "stdout", Data: "\x1b[32m$ " + line + "\x1b[0m\n"})
@@ -167,7 +167,7 @@ func main() {
 					go processNext()
 					mu.Unlock()
 				}
-				fmt.Print("Host> ")
+				printHostPrompt(false)
 			}
 		case <-time.After(100 * time.Millisecond):
 		}
@@ -213,7 +213,7 @@ func processNext() {
 
 // runCommand executes a command, processing built-ins first
 func runCommand(line string) {
-	defer wsConn.WriteJSON(Message{Type: "stdout", Data: "\n$ "})
+	defer sendPrompt(true)
 
 	line = strings.TrimSpace(line)
 	if line == "" {
@@ -301,4 +301,34 @@ func runCommand(line string) {
 
 	wg.Wait()
 	cmd.Wait()
+}
+
+func getFormattedPath() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "~"
+	}
+	home, err := os.UserHomeDir()
+	if err == nil && strings.HasPrefix(dir, home) {
+		dir = "~" + strings.TrimPrefix(dir, home)
+	}
+	return dir
+}
+
+func printHostPrompt(leadingNewline bool) {
+	path := getFormattedPath()
+	if leadingNewline {
+		fmt.Printf("\nhost:%s> ", path)
+	} else {
+		fmt.Printf("host:%s> ", path)
+	}
+}
+
+func sendPrompt(leadingNewline bool) {
+	path := getFormattedPath()
+	prompt := path + " $ "
+	if leadingNewline {
+		prompt = "\n" + prompt
+	}
+	wsConn.WriteJSON(Message{Type: "stdout", Data: prompt})
 }
