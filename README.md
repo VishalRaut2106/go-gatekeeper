@@ -1,132 +1,103 @@
 # 🛡️ Gatekeeper Shell
 
-> A **secure, collaborative, browser-based terminal** for your POSIX-style shell. Share your terminal with guests — but you decide what runs.
+> A **secure, collaborative, remote terminal wrapper** for your POSIX-style shell. Share your terminal with guests — but you decide what runs.
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go)
-![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-brightgreen?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+[![Contributor CI](https://github.com/VishalRaut2106/go-gatekeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/VishalRaut2106/go-gatekeeper/actions/workflows/ci.yml)
+[![NPM Version](https://img.shields.io/npm/v/gatekeeper-shell?style=flat-square&logo=npm)](https://www.npmjs.com/package/gatekeeper-shell)
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go)](https://go.dev/dl/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 ---
 
 ## 🌟 What Is This?
 
-**Gatekeeper Shell** is a Go-powered WebSocket server that wraps your local terminal and exposes it securely through a browser UI. It supports two roles:
+**Gatekeeper Shell** is a Go-powered secure relay system that wraps your local terminal and exposes it safely to guests.
 
-| Role | What they can do |
+| Role | Capabilities |
 |------|-----------------|
-| **Host** | Direct control of the terminal. All keystrokes go straight to the shell. Sees and approves/denies guest commands. |
-| **Guest** | Types commands which are sent to the Host for approval. Commands only execute if the Host approves them. |
-
-This means you can **safely share your terminal** with collaborators, pair programmers, students, or demo viewers — with full command control.
+| **Host** | Full terminal ownership. keystone inputs go directly to shell stdin. Approves or denies guest commands before execution. |
+| **Guest** | Interactive viewing. Can type commands, which are queued and only run once approved by the host. |
 
 ---
 
 ## ✨ Features
 
-- **🔒 Host-gated command execution** — guests cannot run anything without approval
-- **⚡ Real-time WebSocket streaming** — stdout/stderr streamed live to all viewers  
-- **🖥️ Beautiful glassmorphic terminal UI** — dark mode, JetBrains Mono font, Mac-style window
-- **⌨️ Tab completion** — backed by real filesystem + PATH search via Go
-- **📜 Command history** — Arrow keys navigate history (host and guest)
-- **🎯 Role-based UI** — Hosts see the approval overlay; guests see a pending indicator
+- **🔒 Host-Gated Execution** — Guests cannot execute commands without host confirmation.
+- **⚡ Real-Time WebSockets** — Seamless streaming of stdout/stderr directly to the browser UI.
+- **📦 Zero-Install Client** — Run hosts/guests instantly via `npx gatekeeper-shell`.
+- **🖥️ Premium Glassmorphic Terminal** — Modern UI with Dark Mode, customized typography, and window layout.
+- **📊 Relaying Observability** — Built-in `/health` and `/stats` JSON endpoints on the relay server.
+- **🛡️ Provenance Signed** — Verified cryptographic builds published directly to npm registry.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Using npm)
 
-### Prerequisites
-
-- [Go 1.21+](https://go.dev/dl/)
-- [Node.js 18+](https://nodejs.org/) (the underlying POSIX shell runs on Node.js)
-
-### 1. Clone & Build
+To host a session instantly using the pre-compiled binary wrapper:
 
 ```bash
-# From the project root (codecrafters-shell-javascript/)
-cd go-gatekeeper
-go mod tidy
-go build -o gatekeeper.exe .   # Windows
-# go build -o gatekeeper .     # Linux/macOS
+npx gatekeeper-shell
 ```
 
-### 2. Run the Server
-
+To run the client as a guest or target a self-hosted relay server:
 ```bash
-./gatekeeper.exe    # Windows
-# ./gatekeeper      # Linux/macOS
+# Join a session
+npx gatekeeper-shell join <session-code>
+
+# Connect using a custom relay server
+npx gatekeeper-shell host --server wss://your-relay-server.com/ws
 ```
-
-The server starts at **http://localhost:8080**
-
-### 3. Open the Terminal
-
-| Who | URL |
-|-----|-----|
-| **Host (you)** | http://localhost:8080?role=host |
-| **Guest (collaborator)** | http://localhost:8080?role=guest |
 
 ---
 
-## Architecture
+## 🛠️ Self-Hosting the Relay Server
 
-```
-Browser (Host)  <--->  |
-Browser (Guest) <--->  |---  Go WebSocket Server (port 8080)
-Browser (Guest) <--->  |             |
-                                     | stdin/stdout/stderr pipes
-                                Node.js Shell Process (app/main.js)
-```
+If you want to deploy your own secure relay server (e.g. on Render, Fly.io, or Heroku):
 
-The Go server acts as a **gatekeeper**:
-1. Spawns the Node.js POSIX shell as a child process
-2. Connects all browsers via WebSocket
-3. Host keystrokes go directly to shell stdin
-4. Guest commands are held pending, shown to Host, approved/denied, then executed or dropped
-5. Shell stdout/stderr broadcasts to ALL connected browsers
+### 1. Build and Run Server
+```bash
+go run ./cmd/server
+```
+The server starts at `http://localhost:8080` by default.
+
+### 2. Connect CLI Client to Server
+```bash
+go run ./cmd/cli host --server ws://localhost:8080/ws
+```
 
 ---
 
-## Security Model
+## 📊 Observability
 
-- The **Host** is the owner of the machine — they have full terminal access.
-- **Guests** submit commands but **cannot execute anything without explicit host approval**.
-- There is no authentication layer by default — only share the guest link with trusted people.
-
-> **Warning**: The Host URL gives full terminal access. Never share `?role=host` with untrusted users.
+The relay server exposes JSON metrics endpoints for standard health checks and performance monitoring:
+* **`GET /health`**: Returns uptime, active session count, total client connections, and application version.
+* **`GET /stats`**: Lists metadata on active rooms, including active guest counts and cumulative traffic indicators.
 
 ---
 
-## Project Structure
+## 📁 Repository Structure
 
 ```
 go-gatekeeper/
-├── main.go          # Go WebSocket server + shell subprocess manager
-├── go.mod           # Go module definition
-├── go.sum           # Dependency checksums
-├── gatekeeper.exe   # Compiled binary (after build)
-└── web/
-    ├── index.html   # Terminal UI
-    ├── shell.js     # WebSocket client + terminal emulator logic
-    └── styles.css   # Glassmorphic dark terminal theme
+├── cmd/
+│   ├── cli/            # CLI Client code (connects local terminal to relay)
+│   └── server/         # Go WebSocket Relay Server code
+├── web/                # Web application (dark terminal interface)
+├── npm/                # Binary packaging script for npm distribution
+├── render.yaml         # Automated Render deployment definition
+├── package.json        # CLI package versioning definitions
+└── .github/            # GitHub Actions workflows & templates
 ```
 
 ---
 
-## Exposing to the Internet (ngrok)
+## 🤝 Contributing
 
-```bash
-# Terminal 1: Start gatekeeper
-./gatekeeper.exe
-
-# Terminal 2: Tunnel port 8080
-ngrok http 8080
-```
-
-Share the ngrok URL as `https://your-ngrok-url.ngrok.io?role=guest` with guests.
-Keep `http://localhost:8080?role=host` for yourself.
+Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started with local builds, coding style, and PR reviews.
 
 ---
 
-## License
+## 📜 License
 
-MIT License. Built on top of the [codecrafters-shell-javascript](https://github.com/VishalRaut2106/codecrafters-shell-javascript) project.
+Distributed under the [MIT License](LICENSE).
+
