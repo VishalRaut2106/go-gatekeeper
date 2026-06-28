@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -35,11 +35,11 @@ type PendingCmd struct {
 
 var (
 	wsConn    *websocket.Conn
-	shellIn   io.WriteCloser
 	shellBusy bool
 	queue     []PendingCmd
 	active    *PendingCmd
 	mu        sync.Mutex
+	isWin     = runtime.GOOS == "windows"
 )
 
 func main() {
@@ -69,7 +69,8 @@ func main() {
 	wsConn = conn
 	defer conn.Close()
 
-	startShell()
+	// Initial prompt to start the frontend state
+	wsConn.WriteJSON(Message{Type: "stdout", Data: "$ "})
 
 	// Handle messages from server
 	go func() {
@@ -88,13 +89,9 @@ func main() {
 			case "room_info":
 				fmt.Println("\n✅ Secure session started!")
 				fmt.Printf("🔗 Give this link to your guest:\n   %s\n\n", msg.GuestURL)
-			
+
 			case "submit_command":
 				enqueue(msg.Command)
-
-			case "complete":
-				// For tab completion, we can ask system_shell or do it here. 
-				// For now, basic complete can be handled here or just ignored for simplicity.
 			}
 		}
 	}()
@@ -110,19 +107,24 @@ func main() {
 			fmt.Printf("\n⚠️ Guest wants to run: %s\nApprove? [y/N]: ", cmd.Command)
 			ans, _ := reader.ReadString('\n')
 			ans = strings.TrimSpace(strings.ToLower(ans))
-			
+
 			mu.Lock()
 			active = nil
 			mu.Unlock()
 
 			if ans == "y" {
 				wsConn.WriteJSON(Message{Type: "status", Msg: ""})
-				
+
 				mu.Lock()
 				shellBusy = true
 				mu.Unlock()
-				
-				shellIn.Write([]byte(cmd.Command + "\n"))
+
+				runCommand(cmd.Command)
+
+				mu.Lock()
+				shellBusy = false
+				go processNext()
+				mu.Unlock()
 			} else {
 				wsConn.WriteJSON(Message{Type: "status", Msg: ""})
 				wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
@@ -130,7 +132,6 @@ func main() {
 				processNext()
 			}
 		} else {
-			// If not actively prompting for approval, sleep a bit.
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
@@ -165,73 +166,89 @@ func processNext() {
 		Type: "status",
 		Msg:  "Waiting for host approval…",
 	})
-	
+
 	wsConn.WriteJSON(Message{
-		Type: "approval_request",
+		Type:    "approval_request",
 		Command: active.Command,
-		Queue: len(queue),
+		Queue:   len(queue),
 	})
 }
 
-func startShell() {
-	// Find system_shell.js 
-	// For simplicity, assuming it's in the current dir or parent dir
-	var scriptPath string
-	if _, err := os.Stat("system_shell.js"); err == nil {
-		scriptPath = "system_shell.js"
-	} else if _, err := os.Stat("../system_shell.js"); err == nil {
-		scriptPath = "../system_shell.js"
-	} else {
-		scriptPath = "../../system_shell.js"
+// runCommand executes a command, processing built-ins first
+func runCommand(line string) {
+	defer wsConn.WriteJSON(Message{Type: "stdout", Data: "\n$ "})
+
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return
 	}
 
-	cmd := exec.Command("node", scriptPath)
-	cmd.Env = append(os.Environ(), "TERM=dumb")
+	parts := strings.Fields(line)
+	if len(parts) == 0 {
+		return
+	}
+	cmdName := strings.ToLower(parts[0])
 
-	var err error
-	shellIn, err = cmd.StdinPipe()
-	if err != nil {
-		log.Fatal("StdinPipe:", err)
+	switch cmdName {
+	case "cd":
+		target := "."
+		if len(parts) > 1 {
+			target = parts[1]
+		}
+		if target == "~" {
+			target, _ = os.UserHomeDir()
+		}
+		err := os.Chdir(target)
+		if err != nil {
+			wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("cd: %v\n", err)})
+		}
+		return
+	case "pwd":
+		dir, _ := os.Getwd()
+		wsConn.WriteJSON(Message{Type: "stdout", Data: dir + "\n"})
+		return
+	case "clear", "cls":
+		return
+	case "exit", "quit":
+		wsConn.WriteJSON(Message{Type: "stdout", Data: "Session ended.\n"})
+		os.Exit(0)
+	}
+
+	// System command
+	var cmd *exec.Cmd
+	if isWin {
+		cmd = exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", line)
+	} else {
+		cmd = exec.Command("/bin/bash", "-c", line)
 	}
 
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
 	if err := cmd.Start(); err != nil {
-		log.Fatal("shell start:", err)
+		wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("%s: command not found\n", parts[0])})
+		return
 	}
 
-	go pipeOutput(stdout, "stdout")
-	go pipeOutput(stderr, "stderr")
-}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-func pipeOutput(src io.Reader, msgType string) {
-	buf := make([]byte, 4096)
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			data := string(buf[:n])
-			if wsConn != nil {
-				wsConn.WriteJSON(Message{Type: msgType, Data: data})
-			}
-			if msgType == "stdout" && isPrompt(data) {
-				mu.Lock()
-				if shellBusy {
-					shellBusy = false
-					go processNext()
-				}
-				mu.Unlock()
-			}
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			wsConn.WriteJSON(Message{Type: "stdout", Data: scanner.Text() + "\n"})
 		}
-		if err != nil {
-			break
-		}
-	}
-}
+	}()
 
-func isPrompt(data string) bool {
-	trimmed := strings.TrimRight(data, " \n")
-	return data == "$ " || data == "$ \n" ||
-		strings.HasSuffix(trimmed, "\n$") ||
-		strings.Contains(data, "\n$ ")
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			wsConn.WriteJSON(Message{Type: "stderr", Data: scanner.Text() + "\n"})
+		}
+	}()
+
+	wg.Wait()
+	cmd.Wait()
 }
