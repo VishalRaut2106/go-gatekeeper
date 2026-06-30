@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gatekeeper Shell | Documentation</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme docs-page">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('gatekeeper-theme');
+            const body = document.body;
+            if (savedTheme) {
+                if (savedTheme === 'light-theme') {
+                    body.classList.remove('dark-theme');
+                    body.classList.add('light-theme');
+                } else {
+                    body.classList.remove('light-theme');
+                    body.classList.add('dark-theme');
+                }
+            }
+        })();
+    </script>
+    
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>gatekeeper</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">CLI</a>
+                <a href="try.html">Try It</a>
+                <a href="docs.html" class="active">Docs</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-socials" style="display: flex; align-items: center; gap: 18px;">
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank" class="icon-link" title="GitHub">
+                    <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                </a>
+                <a href="https://linkedin.com/in/vishalraut2106" target="_blank" class="icon-link" title="LinkedIn">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor">
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/>
+                    </svg>
+                </a>
+                <a href="https://x.com/vishalraut2106" target="_blank" class="icon-link" title="X (Twitter)">
+                    <svg height="18" viewBox="0 0 24 24" width="18" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" class="icon-link" title="npm Package">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor">
+                        <path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/>
+                    </svg>
+                </a>
+            </div>
+            <a href="docs.html" class="btn-primary">Documentation →</a>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="layout-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="fade-in" style="height: 100%;">
+                <div class="nav-group">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="#introduction">Introduction</a></li>
+                        <li><a href="#installation">Installation</a></li>
+                        <li><a href="#connecting">Connecting</a></li>
+                        <li><a href="#cli-flags">CLI Flags</a></li>
+                    </ul>
+                </div>
+                <div class="nav-group">
+                    <h3>Security</h3>
+                    <ul>
+                        <li><a href="#security-model">Security Model</a></li>
+                        <li><a href="#host-approval">Host Approval</a></li>
+                        <li><a href="#dangerous-commands">Dangerous Commands</a></li>
+                        <li><a href="#encryption">Encryption</a></li>
+                    </ul>
+                </div>
+                <div class="nav-group">
+                    <h3>Architecture</h3>
+                    <ul>
+                        <li><a href="#p2p-relay">P2P Relay</a></li>
+                        <li><a href="#session-logs">Session Logs</a></li>
+                    </ul>
+                </div>
+                <div class="nav-group">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="#advanced">Advanced Usage</a></li>
+                        <li><a href="#self-hosting">Self Hosting</a></li>
+                        <li><a href="#environment-variables">Environment Variables</a></li>
+                    </ul>
+                </div>
+                <div class="nav-group">
+                    <h3>Reference</h3>
+                    <ul>
+                        <li><a href="#troubleshooting">Troubleshooting</a></li>
+                        <li><a href="#changelog">Changelog</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            
+            <div class="breadcrumbs fade-in">GATEKEEPER > CLI > DOCS</div>
+            <h1 class="page-title fade-in">GATEKEEPER SHELL DOCS</h1>
+            <p class="lead-text fade-in">Gatekeeper Shell is a cross-platform secure terminal sharing client for humans. Use it to pair program, debug servers, and help friends without compromising your system security.</p>
+
+            <div class="hero-image-container fade-in">
+                <div class="hero-image-bg">
+                    <div class="terminal-mockup">
+                        <div class="terminal-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="line"><span class="prompt">~/project></span> <span class="command">npx gatekeeper-shell</span></div>
+                            <div class="line"><span class="info"> Gatekeeper Shell <span class="cli-version">v2.0.3</span></span></div>
+                            <div class="line"><span class="success"> Secure session started!</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section id="introduction" class="fade-in">
+                <h2>Introduction</h2>
+                <p>Traditional pair programming tools like SSH or Tmux sharing require setting up public keys, configuring firewalls, and ultimately giving a remote user unrestricted access to your entire operating system.</p>
+                <p>Gatekeeper Shell flips the script. It uses a <strong>zero-trust proxy architecture</strong>. The guest does not interact with your OS directly. Instead, they interact with a WebSocket server, which queues commands for the host to review and approve.</p>
+            </section>
+
+            <section id="installation" class="fade-in">
+                <h2>Installation</h2>
+                <p>If you have Node.js installed, you don't even need to install Gatekeeper Shell permanently. You can run it on-demand using <code>npx</code>.</p>
+                <div class="code-block">
+                    <button class="copy-btn" data-clipboard="npx gatekeeper-shell">Copy</button>
+                    <pre><code><span class="comment"># Start a new session instantly</span>
+npx gatekeeper-shell</code></pre>
+                </div>
+                <p>Alternatively, if you downloaded the standalone <code>.exe</code> or binary from our homepage, just execute it directly in your terminal:</p>
+                <div class="code-block">
+                    <pre><code>./gatekeeper</code></pre>
+                </div>
+            </section>
+
+            <section id="connecting" class="fade-in">
+                <h2>Connecting</h2>
+                <p>When a host starts a session, they are provided with a unique relay URL. They share this URL with the guest.</p>
+                <p>The guest connects by passing the URL as an argument to the CLI:</p>
+                <div class="code-block">
+                    <button class="copy-btn" data-clipboard="npx gatekeeper-shell https://relay.vishalraut.me/YOUR_CODE">Copy</button>
+                    <pre><code><span class="comment"># Connect as a guest</span>
+npx gatekeeper-shell https://relay.vishalraut.me/YOUR_CODE</code></pre>
+                </div>
+                <p>The host will receive a notification that a guest has joined, and the guest can immediately begin typing commands.</p>
+            </section>
+
+            <section id="security-model" class="fade-in">
+                <h2>Security Model</h2>
+                <p>The core of Gatekeeper is built on absolute paranoia. By default, <strong>nothing executes without explicit permission.</strong></p>
+                <p>When a guest types a command, it is transmitted via Secure WebSockets (WSS) to the relay server, which routes it to the host. The host's CLI intercepts the string, pauses the background shell, and renders an interactive prompt.</p>
+            </section>
+
+            <section id="host-approval" class="fade-in">
+                <h2>Host Approval</h2>
+                <p>Every single command sent by a guest triggers a Y/n prompt on the host's terminal.</p>
+                <div class="code-block">
+                    <pre><code><span class="prompt">Guest ➜</span> ls -la
+<span class="prompt">Approve? [Y/n]:</span> y</code></pre>
+                </div>
+                <p>Pressing Enter or typing <code>y</code> executes the command and streams the stdout/stderr back to the guest. Typing <code>n</code> blocks the command instantly.</p>
+            </section>
+
+            <section id="dangerous-commands" class="fade-in">
+                <h2>Dangerous Commands</h2>
+                <p>Gatekeeper includes a <strong>Safe Rules Engine</strong>. If a guest attempts to run a known destructive command (e.g., <code>rm</code>, <code>sudo</code>, <code>mkfs</code>, <code>format</code>), the host is alerted with a glaring red warning before the approval prompt.</p>
+                <div class="code-block">
+                    <pre><code><span class="prompt">Guest ➜</span> <span class="warning-text">rm -rf /</span>
+<span class="warning-bg">WARNING: DANGEROUS COMMAND DETECTED </span>
+<span class="prompt">Approve? [Y/n]:</span></code></pre>
+                </div>
+            </section>
+
+            <section id="p2p-relay" class="fade-in">
+                <h2>P2P Relay</h2>
+                <p>Because most developers sit behind NATs or corporate firewalls, Gatekeeper utilizes a central WebSocket relay server. This relay is <strong>dumb and stateless</strong>. It merely passes encrypted string buffers between Client A (Host) and Client B (Guest).</p>
+                <p>No shell state, history, or output is stored on the relay server.</p>
+            </section>
+
+            <section id="cli-flags" class="fade-in">
+                <h2>CLI Flags</h2>
+                <p>Gatekeeper Shell supports a number of command-line flags for advanced configuration:</p>
+                <table style="width:100%; border-collapse:collapse; margin-top: 16px; font-size: 0.9rem;">
+                    <thead><tr style="border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px 12px; color: var(--text-muted); font-weight: 600;">Flag</th>
+                        <th style="padding: 10px 12px; color: var(--text-muted); font-weight: 600;">Type</th>
+                        <th style="padding: 10px 12px; color: var(--text-muted); font-weight: 600;">Description</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 10px 12px;"><code>-server</code></td><td style="padding: 10px 12px; color: var(--text-muted);">string</td><td style="padding: 10px 12px;">Override the relay WebSocket URL (e.g. <code>ws://localhost:8080/ws</code>)</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 10px 12px;"><code>-role</code></td><td style="padding: 10px 12px; color: var(--text-muted);">string</td><td style="padding: 10px 12px;">Force the client role to <code>host</code> or <code>guest</code> (default: auto)</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 10px 12px;"><code>-no-approve</code></td><td style="padding: 10px 12px; color: var(--text-muted);">bool</td><td style="padding: 10px 12px;">Disable per-command approval prompts (use with extreme caution)</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 10px 12px;"><code>-log</code></td><td style="padding: 10px 12px; color: var(--text-muted);">string</td><td style="padding: 10px 12px;">Write session activity log to a file path</td></tr>
+                        <tr><td style="padding: 10px 12px;"><code>-version</code></td><td style="padding: 10px 12px; color: var(--text-muted);">bool</td><td style="padding: 10px 12px;">Print the current Gatekeeper Shell version and exit</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="encryption" class="fade-in">
+                <h2>Encryption</h2>
+                <p>All traffic between the host and guest is transmitted over <strong>WSS (WebSocket Secure)</strong>, which provides TLS 1.3 encryption at the transport layer. No plain text is ever exposed on the wire.</p>
+                <p>The relay server acts as a blind passthrough — it cannot inspect the contents of the messages it routes. Shell output, command strings, and session metadata are all opaque to the relay.</p>
+                <div class="code-block">
+                    <pre><code>Host ──[TLS/WSS]──▶ Relay Server ──[TLS/WSS]──▶ Guest
+         (encrypted)                    (encrypted)
+              ↕ Command approval happens locally on host</code></pre>
+                </div>
+                <p>For end-to-end encrypted deployments, you can self-host the relay on your private network and use mutual TLS certificates.</p>
+            </section>
+
+            <section id="session-logs" class="fade-in">
+                <h2>Session Logs</h2>
+                <p>By default, all commands executed during a Gatekeeper session are logged locally on the host machine to <code>~/.gatekeeper/sessions/</code>. Each session creates a new log file with the session ID and timestamp.</p>
+                <p>Log files include:</p>
+                <ul>
+                    <li>Timestamp of each command request</li>
+                    <li>Whether the host approved or rejected</li>
+                    <li>The full command string (not the output)</li>
+                    <li>Guest's relay-assigned identifier</li>
+                </ul>
+                <div class="code-block">
+                    <pre><code><span class="comment"># Example log entry</span>
+[2026-06-30T14:22:10Z] GUEST_COMMAND: "ls -la"
+[2026-06-30T14:22:11Z] HOST_ACTION: APPROVED
+[2026-06-30T14:22:13Z] GUEST_COMMAND: "rm -rf /tmp/old"
+[2026-06-30T14:22:14Z] HOST_ACTION: REJECTED (dangerous pattern)</code></pre>
+                </div>
+                <p>To disable logging, run with <code>-log=""</code>. To write logs to a custom path, use <code>-log=/path/to/file.log</code>.</p>
+            </section>
+
+            <section id="advanced" class="fade-in">
+                <h2>Advanced Usage</h2>
+                <p>Behind the scenes, Gatekeeper utilizes standard <code>os/exec</code> pipes to maintain a persistent background shell (like PowerShell on Windows, or Bash on Linux). This means directory changes (<code>cd</code>) and environment variable exports persist across commands, unlike a standard SSH command execution.</p>
+                <p>You can also pipe a session ID directly to the CLI for scripting:</p>
+                <div class="code-block">
+                    <pre><code><span class="comment"># Use a specific session relay URL</span>
+npx gatekeeper-shell -server wss://relay.vishalraut.me/ws?session=MY_ID</code></pre>
+                </div>
+            </section>
+
+            <section id="self-hosting" class="fade-in">
+                <h2>Self Hosting</h2>
+                <p>For ultimate privacy (e.g., within a corporate intranet), you can host the Go relay server yourself.</p>
+                <div class="code-block">
+                    <button class="copy-btn" data-clipboard="git clone https://github.com/VishalRaut2106/go-gatekeeper.git&#10;cd go-gatekeeper&#10;go run ./cmd/server">Copy</button>
+                    <pre><code><span class="comment"># 1. Clone the repository</span>
+git clone https://github.com/VishalRaut2106/go-gatekeeper.git
+
+<span class="comment"># 2. Run the server</span>
+cd go-gatekeeper
+go run ./cmd/server</code></pre>
+                </div>
+                <p>Then, tell your CLI to use your custom server:</p>
+                <div class="code-block">
+                    <pre><code>npx gatekeeper-shell -server ws://localhost:8080/ws?role=host</code></pre>
+                </div>
+            </section>
+
+            <section id="environment-variables" class="fade-in">
+                <h2>Environment Variables</h2>
+                <p>You can configure the CLI and Server using the following environment variables:</p>
+                <ul>
+                    <li><code>GATEKEEPER_RELAY_URL</code> — Overrides the default public relay URL.</li>
+                    <li><code>PORT</code> — (Server-only) Defines which port the Go WebSocket server listens on. Default: <code>8080</code>.</li>
+                    <li><code>GATEKEEPER_LOG_DIR</code> — Override the directory where session logs are written.</li>
+                    <li><code>GATEKEEPER_NO_APPROVE</code> — Set to <code>1</code> to globally disable approval prompts.</li>
+                </ul>
+            </section>
+
+            <section id="troubleshooting" class="fade-in">
+                <h2>Troubleshooting</h2>
+                <h3 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 8px;">Connection refused / WebSocket error</h3>
+                <p>This usually means the relay server is unreachable. Check your internet connection. If self-hosting, confirm the Go server is running and the port is open.</p>
+                <h3 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 8px;">Guest commands not executing</h3>
+                <p>Make sure you're running Gatekeeper Shell as the <em>host</em>, not as a guest. The host terminal is the one that will display approval prompts.</p>
+                <h3 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 8px;">npm / npx version errors</h3>
+                <p>Gatekeeper Shell requires Node.js <strong>v18+</strong>. Run <code>node --version</code> to verify your version. If outdated, use <a href="https://nvm.sh" target="_blank" style="color: var(--brand-green);">nvm</a> to upgrade.</p>
+                <h3 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 8px;">Windows PowerShell — execution policy error</h3>
+                <p>Run PowerShell as Administrator and execute: <code>Set-ExecutionPolicy RemoteSigned</code> before running the binary.</p>
+            </section>
+
+            <section id="changelog" class="fade-in">
+                <h2>Changelog</h2>
+                <div style="border-left: 2px solid var(--brand-green); padding-left: 24px; margin-top: 16px;">
+                    <h3 style="font-size: 1rem; margin-bottom: 4px;">v2.1 — Latest</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">June 2026</p>
+                    <ul style="font-size: 0.9rem;">
+                        <li>End-to-end encrypted sessions over WSS</li>
+                        <li>Session activity logging to local files</li>
+                        <li>Instant approval flow with keyboard shortcut support</li>
+                        <li>npm package: <code>gatekeeper-shell</code></li>
+                    </ul>
+                </div>
+                <div style="border-left: 2px solid var(--border-color); padding-left: 24px; margin-top: 32px;">
+                    <h3 style="font-size: 1rem; margin-bottom: 4px;">v2.0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">March 2026</p>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Cross-platform support (Windows, macOS, Linux)</li>
+                        <li>NAT traversal via WebSocket relay</li>
+                        <li>Dangerous command detection engine</li>
+                        <li>Persistent shell state (cd, exports)</li>
+                    </ul>
+                </div>
+                <div style="border-left: 2px solid var(--border-color); padding-left: 24px; margin-top: 32px;">
+                    <h3 style="font-size: 1rem; margin-bottom: 4px;">v1.0</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">November 2025</p>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Initial release — host/guest terminal sharing</li>
+                        <li>Per-command Y/n approval system</li>
+                        <li>Basic WebSocket relay server in Go</li>
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-grid">
+            <!-- Col 1 -->
+            <div class="footer-brand">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>gatekeeper</span>
+                </div>
+            </div>
+            
+            <!-- Col 2 -->
+            <div class="footer-links">
+                <h3>Gatekeeper</h3>
+                <a href="index.html">CLI Tool</a>
+                <a href="docs.html">Documentation</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" target="_blank">Releases</a>
+            </div>
+
+            <!-- Col 3 -->
+            <div class="footer-links">
+                <h3>Open Source</h3>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub Repository</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/issues" target="_blank">Report an Issue</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/pulls" target="_blank">Contribute <span class="badge" style="background: var(--brand-green); color: #000;">PRs Welcome</span></a>
+            </div>
+
+            <!-- Col 4 -->
+            <div class="footer-links community-col">
+                <h3>Connect</h3>
+                <div class="social-icons">
+                    <a href="https://github.com/VishalRaut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+                    <a href="https://linkedin.com/in/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg></a>
+                    <a href="https://x.com/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                    <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg></a>
+                </div>
+                
+                <h3 style="margin-top: 32px;">Contact</h3>
+                <a href="mailto:vishalraut.contact@gmail.com" style="color: var(--brand-green); font-weight: 500; font-size: 0.9rem; text-decoration: none;">vishalraut.contact@gmail.com</a>
+            </div>
+            
+            <!-- Theme Toggle -->
+            <div class="theme-toggle" id="theme-toggle">
+                <div class="toggle-track">
+                    <div class="toggle-knob"></div>
+                </div>
+                <span>AUTO</span>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="footer-copyright">
+                &copy; 2026 Gatekeeper, Inc.<br>
+                Gatekeeper&reg; is a registered trademark of Gatekeeper, Inc. All Rights Reserved.
+            </div>
+            <div class="footer-legal">
+                <a href="terms.html">Terms & Conditions</a>
+                <a href="privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

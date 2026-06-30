@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Gatekeeper Shell | Instant Pair Programming</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .try-container {
+            max-width: 800px;
+            margin: 120px auto 60px;
+            padding: 0 24px;
+            text-align: center;
+        }
+        .try-header {
+            margin-bottom: 48px;
+        }
+        .try-title {
+            font-family: var(--font-display);
+            font-size: 4.5rem;
+            line-height: 1;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: var(--text-color);
+        }
+        .try-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .command-card {
+            background-color: var(--card-bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: left;
+            position: relative;
+            margin-bottom: 48px;
+        }
+        .command-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--brand-green);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--brand-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+        .terminal-box {
+            background: #000;
+            border-radius: 12px;
+            padding: 20px 24px;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .command-text {
+            color: #fff;
+            user-select: all;
+        }
+        .copy-trigger {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .copy-trigger:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .instructions-list {
+            margin-top: 32px;
+        }
+        .instruction-step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+            align-items: flex-start;
+        }
+        .step-number {
+            background: var(--brand-green);
+            color: #000;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .step-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .back-home {
+            margin-top: 48px;
+        }
+    </style>
+</head>
+<body class="dark-theme try-page">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('gatekeeper-theme');
+            const body = document.body;
+            if (savedTheme) {
+                if (savedTheme === 'light-theme') {
+                    body.classList.remove('dark-theme');
+                    body.classList.add('light-theme');
+                } else {
+                    body.classList.remove('light-theme');
+                    body.classList.add('dark-theme');
+                }
+            }
+        })();
+    </script>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>gatekeeper</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">CLI</a>
+                <a href="try.html" class="active">Try It</a>
+                <a href="docs.html">Docs</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-socials" style="display: flex; align-items: center; gap: 18px;">
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank" class="icon-link" title="GitHub">
+                    <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                </a>
+                <a href="https://linkedin.com/in/vishalraut2106" target="_blank" class="icon-link" title="LinkedIn">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor">
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/>
+                    </svg>
+                </a>
+                <a href="https://x.com/vishalraut2106" target="_blank" class="icon-link" title="X (Twitter)">
+                    <svg height="18" viewBox="0 0 24 24" width="18" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" class="icon-link" title="npm Package">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor">
+                        <path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/>
+                    </svg>
+                </a>
+            </div>
+            <a href="docs.html" class="btn-primary">Documentation →</a>
+        </div>
+    </nav>
+
+    <!-- Try Container -->
+    <div class="try-container fade-in">
+        <div class="try-header">
+            <h1 class="try-title">Try it instantly</h1>
+            <p class="try-subtitle">Run a secure session directly from your command line without downloading the desktop application.</p>
+        </div>
+
+        <div class="command-card">
+            <div class="command-header">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Relay Network Active</span>
+                </div>
+            </div>
+            
+            <div class="terminal-box">
+                <span class="command-text">npx gatekeeper-shell</span>
+                <button class="copy-trigger" onclick="copyCommand(this)">Copy</button>
+            </div>
+
+            <div class="instructions-list">
+                <div class="instruction-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Open your Terminal</h4>
+                        <p>Launch Terminal (macOS/Linux) or Command Prompt/PowerShell (Windows).</p>
+                    </div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Paste & Run the Command</h4>
+                        <p>Copy the command above and press Enter. Node.js (npm) will execute the package temporarily.</p>
+                    </div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Start Collaborating</h4>
+                        <p>Your session ID will be generated. Send it to your peer to establish an end-to-end encrypted connection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-home">
+            <a href="index.html" class="btn-secondary">← Back to Homepage</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-grid">
+            <!-- Col 1 -->
+            <div class="footer-brand">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>gatekeeper</span>
+                </div>
+            </div>
+            
+            <!-- Col 2 -->
+            <div class="footer-links">
+                <h3>Gatekeeper</h3>
+                <a href="index.html">CLI Tool</a>
+                <a href="docs.html">Documentation</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" target="_blank">Releases</a>
+            </div>
+
+            <!-- Col 3 -->
+            <div class="footer-links">
+                <h3>Open Source</h3>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub Repository</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/issues" target="_blank">Report an Issue</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/pulls" target="_blank">Contribute <span class="badge" style="background: var(--brand-green); color: #000;">PRs Welcome</span></a>
+            </div>
+
+            <!-- Col 4 -->
+            <div class="footer-links community-col">
+                <h3>Connect</h3>
+                <div class="social-icons">
+                    <a href="https://github.com/VishalRaut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+                    <a href="https://linkedin.com/in/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg></a>
+                    <a href="https://x.com/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                    <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg></a>
+                </div>
+                
+                <h3 style="margin-top: 32px;">Contact</h3>
+                <a href="mailto:vishalraut.contact@gmail.com" style="color: var(--brand-green); font-weight: 500; font-size: 0.9rem; text-decoration: none;">vishalraut.contact@gmail.com</a>
+            </div>
+            
+            <!-- Theme Toggle -->
+            <div class="theme-toggle" id="theme-toggle">
+                <div class="toggle-track">
+                    <div class="toggle-knob"></div>
+                </div>
+                <span>AUTO</span>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="footer-copyright">
+                &copy; 2026 Gatekeeper, Inc.<br>
+                Gatekeeper&reg; is a registered trademark of Gatekeeper, Inc. All Rights Reserved.
+            </div>
+            <div class="footer-legal">
+                <a href="terms.html">Terms & Conditions</a>
+                <a href="privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function copyCommand(button) {
+            navigator.clipboard.writeText("npx gatekeeper-shell").then(() => {
+                button.textContent = "Copied!";
+                button.style.backgroundColor = "var(--brand-green)";
+                button.style.color = "#000";
+                button.style.borderColor = "var(--brand-green)";
+                setTimeout(() => {
+                    button.textContent = "Copy";
+                    button.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                    button.style.color = "#fff";
+                    button.style.borderColor = "rgba(255, 255, 255, 0.15)";
+                }, 2000);
+            });
+        }
+    </script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>

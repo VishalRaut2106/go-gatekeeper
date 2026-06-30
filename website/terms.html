@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms &amp; Conditions | Gatekeeper Shell</title>
+    <meta name="description" content="Terms and Conditions for using Gatekeeper Shell — the secure, host-approved terminal sharing tool.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .legal-page { max-width: 780px; margin: 0 auto; padding: 80px 32px 120px; }
+        .legal-page h1 { font-family: "Space Grotesk", sans-serif; font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+        .legal-page .last-updated { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 56px; }
+        .legal-page h2 { font-family: "Space Grotesk", sans-serif; font-size: 1.25rem; font-weight: 700; margin-top: 48px; margin-bottom: 12px; color: var(--text-primary); }
+        .legal-page p, .legal-page li { font-size: 0.95rem; line-height: 1.8; color: var(--text-secondary); margin-bottom: 12px; }
+        .legal-page ul { padding-left: 24px; margin-bottom: 16px; }
+        .legal-page a { color: var(--brand-green); text-decoration: none; }
+        .legal-page a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body class="dark-theme">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem("gatekeeper-theme");
+            const body = document.body;
+            if (savedTheme) {
+                if (savedTheme === "light-theme") { body.classList.remove("dark-theme"); body.classList.add("light-theme"); }
+                else { body.classList.remove("light-theme"); body.classList.add("dark-theme"); }
+            }
+        })();
+    </script>
+
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>gatekeeper</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">CLI</a>
+                <a href="try.html">Try It</a>
+                <a href="docs.html">Docs</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-socials" style="display: flex; align-items: center; gap: 18px;">
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank" class="icon-link" title="GitHub">
+                    <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                </a>
+                <a href="https://linkedin.com/in/vishalraut2106" target="_blank" class="icon-link" title="LinkedIn">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg>
+                </a>
+                <a href="https://x.com/vishalraut2106" target="_blank" class="icon-link" title="X (Twitter)">
+                    <svg height="18" viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" class="icon-link" title="npm Package">
+                    <svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg>
+                </a>
+            </div>
+            <a href="docs.html" class="btn-primary">Documentation &rarr;</a>
+        </div>
+    </nav>
+
+    <div class="legal-page">
+        <h1>Terms &amp; Conditions</h1>
+        <p class="last-updated">Last updated: June 30, 2026</p>
+
+        <p>These Terms and Conditions govern your access to and use of Gatekeeper Shell, including the <code>gatekeeper-shell</code> npm package, the Go relay server, and the associated website. By using the Service, you agree to be bound by these Terms.</p>
+
+        <h2>1. Acceptance of Terms</h2>
+        <p>By downloading, installing, or using Gatekeeper Shell in any form, you confirm that you have read, understood, and agree to these Terms. If you do not agree, do not use the Service.</p>
+
+        <h2>2. Description of Service</h2>
+        <p>Gatekeeper Shell is an open-source terminal sharing tool that allows a "host" user to share their terminal session with a "guest" user over an encrypted WebSocket relay. Every command sent by the guest must be explicitly approved by the host before it is executed.</p>
+
+        <h2>3. Permitted Use</h2>
+        <p>You may use Gatekeeper Shell only for lawful purposes. Permitted uses include:</p>
+        <ul>
+            <li>Collaborative software development and pair programming</li>
+            <li>Remote debugging and technical support with explicit consent of both parties</li>
+            <li>Educational demonstrations in a controlled environment</li>
+            <li>Self-hosting the relay server on your own infrastructure</li>
+        </ul>
+
+        <h2>4. Prohibited Use</h2>
+        <p>You agree not to use the Service to:</p>
+        <ul>
+            <li>Access or control any system without the explicit consent of the system owner</li>
+            <li>Transmit malware, viruses, or any harmful or destructive content</li>
+            <li>Bypass, disable, or circumvent any security mechanisms of the Service</li>
+            <li>Use the relay server infrastructure for purposes other than legitimate terminal sharing</li>
+            <li>Exploit the Service in any manner that could damage, disable, or impair its operation</li>
+        </ul>
+
+        <h2>5. Open Source License</h2>
+        <p>Gatekeeper Shell is released under the <strong>MIT License</strong>. You are free to use, copy, modify, and distribute the source code under the conditions of the MIT License. The license is included in the project repository at <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">github.com/VishalRaut2106/go-gatekeeper</a>.</p>
+
+        <h2>6. Public Relay Server</h2>
+        <p>The public relay server at <code>wss://relay.vishalraut.me</code> is provided as a convenience without any uptime guarantee, SLA, or warranty. You accept that:</p>
+        <ul>
+            <li>The relay server may be taken offline at any time without notice</li>
+            <li>The relay does not store, log, or inspect the content of your session traffic</li>
+            <li>You use the public relay at your own risk</li>
+        </ul>
+        <p>For production or sensitive workloads, we strongly recommend self-hosting the relay server.</p>
+
+        <h2>7. Disclaimer of Warranties</h2>
+        <p>The Service is provided "AS IS" and "AS AVAILABLE," without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+
+        <h2>8. Limitation of Liability</h2>
+        <p>To the maximum extent permitted by applicable law, Vishal Raut and any contributors to Gatekeeper Shell shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service.</p>
+
+        <h2>9. Security Responsibility</h2>
+        <p>You are solely responsible for reviewing and approving all commands presented to you. Enabling the <code>-no-approve</code> flag removes the primary security safeguard and you do so entirely at your own risk.</p>
+
+        <h2>10. Changes to Terms</h2>
+        <p>We reserve the right to modify these Terms at any time. Changes will be reflected on this page with an updated date. Continued use of the Service following any changes constitutes your acceptance of the new Terms.</p>
+
+        <h2>11. Contact</h2>
+        <p>If you have any questions about these Terms, please contact us at <a href="mailto:vishalraut.contact@gmail.com">vishalraut.contact@gmail.com</a>.</p>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>gatekeeper</span>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h3>Gatekeeper</h3>
+                <a href="index.html">CLI Tool</a>
+                <a href="docs.html">Documentation</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" target="_blank">Releases</a>
+            </div>
+            <div class="footer-links">
+                <h3>Open Source</h3>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub Repository</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/issues" target="_blank">Report an Issue</a>
+                <a href="https://github.com/VishalRaut2106/go-gatekeeper/pulls" target="_blank">Contribute</a>
+            </div>
+            <div class="footer-links community-col">
+                <h3>Connect</h3>
+                <div class="social-icons">
+                    <a href="https://github.com/VishalRaut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+                    <a href="https://linkedin.com/in/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg></a>
+                    <a href="https://x.com/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                    <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg></a>
+                </div>
+                <h3 style="margin-top: 32px;">Contact</h3>
+                <a href="mailto:vishalraut.contact@gmail.com" style="color: var(--brand-green); font-weight: 500; font-size: 0.9rem; text-decoration: none;">vishalraut.contact@gmail.com</a>
+            </div>
+            <div class="theme-toggle" id="theme-toggle">
+                <div class="toggle-track"><div class="toggle-knob"></div></div>
+                <span>AUTO</span>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="footer-copyright">
+                &copy; 2026 Gatekeeper, Inc.<br>
+                Gatekeeper&reg; is a registered trademark of Gatekeeper, Inc. All Rights Reserved.
+            </div>
+            <div class="footer-legal">
+                <a href="terms.html">Terms &amp; Conditions</a>
+                <a href="privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
