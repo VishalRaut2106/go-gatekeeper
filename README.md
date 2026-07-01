@@ -6,8 +6,18 @@
 
 [![Contributor CI](https://github.com/VishalRaut2106/go-gatekeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/VishalRaut2106/go-gatekeeper/actions/workflows/ci.yml)
 [![NPM Version](https://img.shields.io/npm/v/gatekeeper-shell?style=flat-square&logo=npm)](https://www.npmjs.com/package/gatekeeper-shell)
+[![NPM Downloads](https://img.shields.io/npm/dm/gatekeeper-shell?style=flat-square&logo=npm&color=red)](https://www.npmjs.com/package/gatekeeper-shell)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go)](https://go.dev/dl/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+
+[![GitHub Stars](https://img.shields.io/github/stars/VishalRaut2106/go-gatekeeper?style=flat-square&logo=github&color=yellow)](https://github.com/VishalRaut2106/go-gatekeeper/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/VishalRaut2106/go-gatekeeper?style=flat-square&logo=github&color=blue)](https://github.com/VishalRaut2106/go-gatekeeper/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/VishalRaut2106/go-gatekeeper?style=flat-square&logo=github&color=red)](https://github.com/VishalRaut2106/go-gatekeeper/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/VishalRaut2106/go-gatekeeper/pulls)
+[![Go Report Card](https://goreportcard.com/badge/github.com/VishalRaut2106/go-gatekeeper?style=flat-square)](https://goreportcard.com/report/github.com/VishalRaut2106/go-gatekeeper)
+[![GitHub Contributors](https://img.shields.io/github/contributors/VishalRaut2106/go-gatekeeper?style=flat-square)](https://github.com/VishalRaut2106/go-gatekeeper/graphs/contributors)
+
+[![NPM](https://nodei.co/npm/gatekeeper-shell.png?downloads=true&downloadRank=true)](https://nodei.co/npm/gatekeeper-shell/)
 
 ---
 
