@@ -74,7 +74,7 @@
                     </svg>
                 </a>
             </div>
-            <a href="docs.html" class="btn-primary">Documentation →</a>
+            <a href="docs.html" class="btn-primary">Documentation &rarr;</a>
         </div>
     </nav>
 
@@ -141,7 +141,7 @@
                 <div class="alt-downloads">
                     <span>Also available for:</span>
                     <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" id="dl-mac" target="_blank">macOS</a>
-                    <span class="dot-separator">•</span>
+                    <span class="dot-separator">&bull;</span>
                     <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" id="dl-linux" target="_blank">Linux</a>
                 </div>
             </div>
@@ -153,38 +153,57 @@
     <div class="changelog-section text-center fade-in">
         <span class="changelog-label">Latest Update</span>
         <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" class="changelog-pill" target="_blank">
-            Gatekeeper <span class="changelog-version">v2.1</span> — 🚀 E2E encryption, session logging, and instant approval flow
+            Gatekeeper <span class="changelog-version">v2.0.3</span> &mdash; &#128640; E2E encryption, session logging, and instant approval flow
         </a>
     </div>
 
-    <!-- Feature 1: E2E -->
+    <!-- Feature 1: E2E Encryption -->
     <section class="section-padding fade-in">
         <div class="container grid-2-col">
             <div class="feature-graphic">
-                <div class="graphic-placeholder">
-                   <div class="feature-blob green"></div>
-                   <div class="terminal-mockup feature-window" style="padding: 16px; width: 85%; height: 75%; display: flex; flex-direction: column;">
-                       <div class="terminal-header" style="margin-bottom: 12px; padding: 0; border: none; box-shadow: none;">
-                           <span class="dot red"></span>
-                           <span class="dot yellow"></span>
-                           <span class="dot green"></span>
-                       </div>
-                       <div class="terminal-body" style="padding: 0; font-size: 11px; flex-grow: 1;">
-                           <div class="line"><span class="prompt">$</span> gatekeeper host start</div>
-                           <div class="line" style="margin-top: 12px;"><span class="info">Generating ephemeral ECDH keys...</span></div>
-                           <div class="line"><span class="success" style="color: #68d391;"> Tunnel established via relay.gatekeeper.dev</span></div>
-                           <div class="line" style="margin-top: 12px;"><span class="info">Waiting for peers to connect...</span></div>
-                       </div>
-                   </div>
+                <div class="feature-card-wrap">
+                    <div class="feature-blob-accent green-accent"></div>
+                    <div class="feature-terminal-card">
+                        <div class="terminal-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                            <span class="terminal-title-label">host &mdash; gatekeeper</span>
+                        </div>
+                        <div class="feature-terminal-body">
+                            <div class="ft-line"><span class="ft-prompt">$</span> <span class="ft-cmd">gatekeeper host start</span></div>
+                            <div class="ft-line ft-gap"><span class="ft-info">Generating ephemeral ECDH keys...</span></div>
+                            <div class="ft-line"><span class="ft-success">&check; Tunnel established via relay.gatekeeper.dev</span></div>
+                            <div class="ft-line ft-gap"><span class="ft-muted">Session ID:</span> <span class="ft-highlight">gk-7f3a2b</span></div>
+                            <div class="ft-line"><span class="ft-info">Waiting for peers to connect...</span></div>
+                            <div class="ft-line ft-gap"><span class="ft-success">&check; Guest connected. E2E encrypted tunnel active.</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="feature-content">
                 <span class="badge">Secure by Design</span>
                 <h2 class="section-title">End-to-End Encrypted Tunnels</h2>
-                <p class="section-desc">Share your local terminal instantly without opening firewalls. Every peer-to-peer connection is secured with military-grade encryption.</p>
+                <p class="section-desc">Share your local terminal instantly without opening firewalls. Every peer-to-peer connection is secured with military-grade ECDH encryption &mdash; the relay server never sees your data.</p>
+                <div class="feature-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">E2E</span>
+                        <span class="stat-label">Encrypted</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">0ms</span>
+                        <span class="stat-label">Data Stored</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">NAT</span>
+                        <span class="stat-label">Traversal</span>
+                    </div>
+                </div>
                 <div class="buttons-group" style="margin-top: 24px;">
                     <a href="docs.html#security-model" class="btn-secondary">Read Security Spec</a>
-                    <a href="https://github.com/VishalRaut2106/go-gatekeeper" class="btn-primary" target="_blank">View on GitHub →</a>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper" class="btn-primary" target="_blank">View on GitHub &rarr;</a>
                 </div>
             </div>
         </div>
@@ -192,31 +211,54 @@
 
     <!-- Feature 2: Pair Programming -->
     <section class="section-padding fade-in">
-        <div class="container grid-2-col">
+        <div class="container grid-2-col reverse-on-mobile">
             <div class="feature-content">
+                <span class="badge">Zero Trust</span>
                 <h2 class="section-title">Frictionless Pair Programming</h2>
-                <p class="section-desc">Stop sharing your screen. Give your teammates secure, controlled access to your local dev environment in seconds, complete with command approval.</p>
+                <p class="section-desc">Stop sharing your screen. Give your teammates secure, controlled access to your local dev environment in seconds &mdash; every command requires your explicit approval before it runs.</p>
+                <div class="feature-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">100%</span>
+                        <span class="stat-label">Host Control</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">0</span>
+                        <span class="stat-label">Config Files</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">npx</span>
+                        <span class="stat-label">Instant Start</span>
+                    </div>
+                </div>
                 <div class="buttons-group" style="margin-top: 24px;">
                     <a href="try.html" class="btn-secondary">Try it: <code>npx gatekeeper-shell</code></a>
                     <a href="docs.html" class="btn-secondary">Read Docs</a>
                 </div>
             </div>
-            <div class="feature-graphic right-aligned">
-                <div class="graphic-placeholder">
-                   <div class="terminal-mockup feature-window" style="padding: 16px; width: 90%; height: 80%; display: flex; flex-direction: column; z-index: 2;">
-                       <div class="terminal-header" style="margin-bottom: 12px; padding: 0; border: none; box-shadow: none;">
-                           <span class="dot red"></span>
-                           <span class="dot yellow"></span>
-                           <span class="dot green"></span>
-                       </div>
-                       <div class="terminal-body" style="padding: 0; font-size: 11px; flex-grow: 1;">
-                           <div class="line"><span class="info">Peer 'alex_dev' connected.</span></div>
-                           <div class="line" style="margin-top: 12px;"><span class="warning-text">Guest requested:</span> <span class="command" style="color: #e2e8f0;">rm -rf node_modules/</span></div>
-                           <div class="line"><span class="prompt">Approve? [y/N]</span> y</div>
-                           <div class="line" style="margin-top: 12px;"><span class="success" style="color: #68d391;">Command executed successfully.</span></div>
-                       </div>
-                   </div>
-                   <div class="feature-blob dark"></div>
+            <div class="feature-graphic">
+                <div class="feature-card-wrap">
+                    <div class="feature-blob-accent blue-accent"></div>
+                    <div class="feature-terminal-card">
+                        <div class="terminal-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                            <span class="terminal-title-label">host &mdash; approval prompt</span>
+                        </div>
+                        <div class="feature-terminal-body">
+                            <div class="ft-line"><span class="ft-info">Peer 'alex_dev' connected.</span></div>
+                            <div class="ft-line ft-gap"><span class="ft-muted">Guest requested:</span></div>
+                            <div class="ft-line"><span class="ft-prompt">&rsaquo;</span> <span class="ft-cmd">kubectl get pods -n production</span></div>
+                            <div class="ft-line ft-gap ft-approval-box">
+                                <span class="ft-approval-label">Approve? [y/N]:</span>
+                                <span class="ft-approval-input">y</span>
+                                <span class="ft-cursor">&#9608;</span>
+                            </div>
+                            <div class="ft-line ft-gap"><span class="ft-success">&check; Command executed successfully.</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -237,7 +279,7 @@
                 </div>
             </div>
 
-            <!-- Right Side: Community & Newsletter -->
+            <!-- Right Side: Community & Contact -->
             <div class="cta-right">
                 <div class="cta-section">
                     <h3>Join the community</h3>
@@ -256,15 +298,15 @@
                         </a>
                         <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" class="comm-btn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg>
-                            npm package
+                            npm
                         </a>
                     </div>
                 </div>
 
                 <div class="cta-section">
                     <h3>Get in touch</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px;">Have questions or feedback?</p>
-                    <a href="mailto:vishalraut.contact@gmail.com" style="color: var(--brand-green); font-weight: 600; text-decoration: none; font-size: 0.95rem;">vishalraut.contact@gmail.com</a>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 8px;">Have questions or feedback?</p>
+                    <a href="mailto:vishalraut.contact@gmail.com" style="color: #77d49b; font-weight: 600; text-decoration: none; font-size: 0.95rem;">vishalraut.contact@gmail.com</a>
                 </div>
             </div>
         </div>
@@ -272,62 +314,65 @@
 
     <!-- Footer -->
     <footer class="main-footer">
-        <div class="footer-grid fade-in">
-            <!-- Col 1 -->
-            <div class="footer-brand">
-                <div class="logo">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    <span>gatekeeper</span>
+        <div class="footer-inner">
+            <div class="footer-grid">
+                <!-- Brand + tagline -->
+                <div class="footer-brand">
+                    <div class="logo">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <span>gatekeeper</span>
+                    </div>
+                    <p class="footer-tagline">Zero-trust terminal sharing for developers who care about security.</p>
+                    <div class="social-icons" style="margin-top: 20px;">
+                        <a href="https://github.com/VishalRaut2106" target="_blank" title="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+                        <a href="https://linkedin.com/in/vishalraut2106" target="_blank" title="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg></a>
+                        <a href="https://x.com/vishalraut2106" target="_blank" title="X / Twitter"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                        <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" title="npm"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg></a>
+                    </div>
+                </div>
+
+                <!-- Product links -->
+                <div class="footer-links">
+                    <h3>Product</h3>
+                    <a href="index.html">CLI Tool</a>
+                    <a href="try.html">Try It Live</a>
+                    <a href="docs.html">Documentation</a>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" target="_blank">Changelog</a>
+                </div>
+
+                <!-- Open source links -->
+                <div class="footer-links">
+                    <h3>Open Source</h3>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub Repository</a>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper/issues" target="_blank">Report an Issue</a>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper/pulls" target="_blank">Contribute</a>
+                    <a href="https://github.com/VishalRaut2106/go-gatekeeper/blob/master/LICENSE" target="_blank">MIT License</a>
+                </div>
+
+                <!-- Contact + theme toggle -->
+                <div class="footer-links">
+                    <h3>Contact</h3>
+                    <a href="mailto:vishalraut.contact@gmail.com" class="footer-email">vishalraut.contact@gmail.com</a>
+                    <div class="footer-theme-wrap">
+                        <span class="footer-theme-label">Theme</span>
+                        <div class="theme-toggle" id="theme-toggle">
+                            <div class="toggle-track">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <span>AUTO</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Col 2 -->
-            <div class="footer-links">
-                <h3>Gatekeeper</h3>
-                <a href="index.html">CLI Tool</a>
-                <a href="docs.html">Documentation</a>
-                <a href="https://github.com/VishalRaut2106/go-gatekeeper/releases" target="_blank">Releases</a>
-            </div>
 
-            <!-- Col 3 -->
-            <div class="footer-links">
-                <h3>Open Source</h3>
-                <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank">GitHub Repository</a>
-                <a href="https://github.com/VishalRaut2106/go-gatekeeper/issues" target="_blank">Report an Issue</a>
-                <a href="https://github.com/VishalRaut2106/go-gatekeeper/pulls" target="_blank">Contribute <span class="badge" style="background: var(--brand-green); color: #000;">PRs Welcome</span></a>
-            </div>
-
-            <!-- Col 4 -->
-            <div class="footer-links community-col">
-                <h3>Connect</h3>
-                <div class="social-icons">
-                    <a href="https://github.com/VishalRaut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
-                    <a href="https://linkedin.com/in/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8h2.8v-4.87c0-.26.05-.52.12-.7a.78.78 0 0 1 .72-.53c.47 0 .62.36.62.88v5.22h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5v-8H5v8h3z"/></svg></a>
-                    <a href="https://x.com/vishalraut2106" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-                    <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.787 0 0 .787 0 1.763v20.474C0 23.213.787 24 1.763 24h20.474c.976 0 1.763-.787 1.763-1.763V1.763C24 .787 23.213 0 22.237 0H1.763zM5.27 5.27h13.46v13.46H13.62V8.412H10.37v10.318H5.27V5.27z"/></svg></a>
+            <div class="footer-bottom">
+                <div class="footer-copyright">
+                    &copy; 2026 Gatekeeper, Inc. &nbsp;Â·&nbsp; Gatekeeper&reg; is a registered trademark. All Rights Reserved.
                 </div>
-                
-                <h3 style="margin-top: 32px;">Contact</h3>
-                <a href="mailto:vishalraut.contact@gmail.com" style="color: var(--brand-green); font-weight: 500; font-size: 0.9rem; text-decoration: none;">vishalraut.contact@gmail.com</a>
-            </div>
-            
-            <!-- Theme Toggle Mock -->
-            <div class="theme-toggle" id="theme-toggle">
-                <div class="toggle-track">
-                    <div class="toggle-knob"></div>
+                <div class="footer-legal">
+                    <a href="terms.html">Terms &amp; Conditions</a>
+                    <a href="privacy.html">Privacy Policy</a>
                 </div>
-                <span>AUTO</span>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <div class="footer-copyright">
-                &copy; 2026 Gatekeeper, Inc.<br>
-                Gatekeeper&reg; is a registered trademark of Gatekeeper, Inc. All Rights Reserved.
-            </div>
-            <div class="footer-legal">
-                <a href="terms.html">Terms & Conditions</a>
-                <a href="privacy.html">Privacy Policy</a>
             </div>
         </div>
     </footer>
