@@ -1,6 +1,58 @@
 'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
+let aesKey = null;
+
+async function initCrypto() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#key=')) {
+    const b64 = hash.substring(5);
+    // Base64URL decode
+    const raw = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    const keyBytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) keyBytes[i] = raw.charCodeAt(i);
+    
+    aesKey = await crypto.subtle.importKey(
+      "raw", keyBytes, "AES-GCM", false, ["encrypt", "decrypt"]
+    );
+    console.log("E2EE Initialized");
+  } else {
+    console.warn("No E2EE key provided in URL! Ensure you used the secure link from the host.");
+  }
+}
+
+async function decryptStr(ciphertextB64) {
+  if (!aesKey || !ciphertextB64) return ciphertextB64;
+  try {
+    const raw = atob(ciphertextB64.replace(/-/g, '+').replace(/_/g, '/'));
+    const data = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) data[i] = raw.charCodeAt(i);
+    
+    const nonce = data.slice(0, 12);
+    const ciphertext = data.slice(12);
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, aesKey, ciphertext);
+    return new TextDecoder().decode(decrypted);
+  } catch (e) {
+    console.error("Decryption failed", e);
+    return "";
+  }
+}
+
+async function encryptStr(text) {
+  if (!aesKey || !text) return text;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(text);
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, aesKey, encoded);
+  
+  const combined = new Uint8Array(12 + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), 12);
+  
+  let binary = '';
+  for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   const tTitle       = document.getElementById('tTitle');
   const tRole        = document.getElementById('tRole');
   const footMid      = document.getElementById('footMid');
@@ -29,6 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
   fitAddon.fit();
   window.addEventListener('resize', () => fitAddon.fit());
 
+  // Initialize E2EE
+  await initCrypto();
+  if (aesKey) {
+    term.writeln('\x1b[32m🔒 AES-GCM End-to-End Encryption Active.\x1b[0m');
+  } else {
+    term.writeln('\x1b[31m⚠️ WARNING: Connection is NOT End-to-End Encrypted (missing key in URL).\x1b[0m');
+  }
   term.writeln('\x1b[33mConnected to Host \u2014 commands need host approval before running.\x1b[0m');
   
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -41,17 +100,19 @@ document.addEventListener('DOMContentLoaded', () => {
     term.writeln('\r\n\x1b[31mSession disconnected.\x1b[0m');
   };
 
-  ws.onmessage = ev => {
+  ws.onmessage = async (ev) => {
     try {
       const msg = JSON.parse(ev.data);
       switch (msg.type) {
         case 'stdout':
         case 'stderr':
-          term.write(msg.data.replace(/\r?\n/g, '\r\n'));
+          const output = await decryptStr(msg.data);
+          term.write(output.replace(/\r?\n/g, '\r\n'));
           break;
         case 'status':
-          if (msg.msg) {
-            waitMsg.textContent = msg.msg; waitBar.style.display = 'flex';
+          const statusMsg = msg.msg ? await decryptStr(msg.msg) : "";
+          if (statusMsg) {
+            waitMsg.textContent = statusMsg; waitBar.style.display = 'flex';
             footMid.textContent = '\u23f3 waiting';
           } else {
             waitBar.style.display = 'none'; footMid.textContent = 'connected';
@@ -61,17 +122,22 @@ document.addEventListener('DOMContentLoaded', () => {
           term.writeln('\r\n\x1b[90m[host ended session]\x1b[0m');
           break;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   let inputBuffer = '';
-  term.onData(data => {
+  term.onData(async (data) => {
     if (ws.readyState !== WebSocket.OPEN) return;
     for (let i = 0; i < data.length; i++) {
       const char = data[i];
       if (char === '\r') {
         term.write('\r\n');
-        if (inputBuffer.trim()) ws.send(JSON.stringify({ type: 'submit_command', command: inputBuffer }));
+        if (inputBuffer.trim()) {
+            const encryptedCmd = await encryptStr(inputBuffer);
+            ws.send(JSON.stringify({ type: 'submit_command', command: encryptedCmd }));
+        }
         inputBuffer = '';
       } else if (char === '\x7F') {
         if (inputBuffer.length > 0) { inputBuffer = inputBuffer.slice(0, -1); term.write('\b \b'); }

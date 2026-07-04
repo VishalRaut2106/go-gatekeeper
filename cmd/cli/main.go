@@ -2,6 +2,10 @@ package main
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -46,7 +51,55 @@ var (
 	shellIn  io.WriteCloser
 	shellOut io.ReadCloser
 	shellErr io.ReadCloser
+
+	e2eKey []byte
+	auditLogFile *os.File
 )
+
+func initE2E() {
+	e2eKey = make([]byte, 32)
+	rand.Read(e2eKey)
+}
+
+func encrypt(text string) string {
+	if text == "" {
+		return ""
+	}
+	block, err := aes.NewCipher(e2eKey)
+	if err != nil {
+		return text
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return text
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	rand.Read(nonce)
+	ciphertext := gcm.Seal(nonce, nonce, []byte(text), nil)
+	return base64.RawURLEncoding.EncodeToString(ciphertext)
+}
+
+func decrypt(cryptoText string) string {
+	if cryptoText == "" {
+		return ""
+	}
+	ciphertext, err := base64.RawURLEncoding.DecodeString(cryptoText)
+	if err != nil {
+		return cryptoText
+	}
+	block, _ := aes.NewCipher(e2eKey)
+	gcm, _ := cipher.NewGCM(block)
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return cryptoText
+	}
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return cryptoText
+	}
+	return string(plaintext)
+}
 
 func main() {
 	serverURL := flag.String("server", "ws://localhost:8080/ws?role=host", "Cloud Relay WebSocket URL")
@@ -75,6 +128,9 @@ func main() {
 	wsConn = conn
 	defer conn.Close()
 
+	initE2E()
+	fmt.Println("🔒 AES-GCM End-to-End Encryption initialized.")
+
 	startShell()
 
 	// Initial prompt to start the frontend state with the correct path
@@ -96,10 +152,15 @@ func main() {
 			switch msg.Type {
 			case "room_info":
 				fmt.Println("\n✅ Secure session started!")
-				fmt.Printf("🔗 Give this link to your guest:\n   %s\n\n", msg.GuestURL)
+				initLogger(msg.RoomCode)
+				// Append the AES key as a URL hash fragment (never sent to the server)
+				keyB64 := base64.RawURLEncoding.EncodeToString(e2eKey)
+				secureGuestURL := fmt.Sprintf("%s#key=%s", msg.GuestURL, keyB64)
+				fmt.Printf("🔗 Give this link to your guest:\n   %s\n\n", secureGuestURL)
 
 			case "submit_command":
-				enqueue(msg.Command)
+				decryptedCmd := decrypt(msg.Command)
+				enqueue(decryptedCmd)
 			}
 		}
 	}()
@@ -147,27 +208,30 @@ func main() {
 				promptPrinted = false
 
 				if ans == "" || ans == "y" {
-					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
+					wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
 
 					mu.Lock()
 					shellBusy = true
 					mu.Unlock()
 
+					logAudit(cmd.Command, "GUEST_APPROVED")
 					runCommand(cmd.Command)
 				} else {
-					wsConn.WriteJSON(Message{Type: "status", Msg: ""})
-					wsConn.WriteJSON(Message{Type: "stderr", Data: "\nCommand denied by host.\n"})
+					logAudit(cmd.Command, "GUEST_DENIED")
+					wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
+					wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt("\nCommand denied by host.\n")})
 					sendPrompt(true)
 					processNext()
 				}
 				printHostPrompt(false)
 			} else {
 				if line != "" {
-					wsConn.WriteJSON(Message{Type: "stdout", Data: "\x1b[32m$ " + line + "\x1b[0m\n"})
+					wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("\x1b[32m$ " + line + "\x1b[0m\n")})
 					mu.Lock()
 					shellBusy = true
 					mu.Unlock()
 
+					logAudit(line, "HOST_DIRECT")
 					runCommand(line)
 				}
 				printHostPrompt(false)
@@ -186,7 +250,7 @@ func enqueue(cmd string) {
 	} else {
 		wsConn.WriteJSON(Message{
 			Type:  "status",
-			Msg:   fmt.Sprintf("Queued (position %d) — waiting for current command…", len(queue)),
+			Msg:   encrypt(fmt.Sprintf("Queued (position %d) — waiting for current command…", len(queue))),
 			Queue: len(queue),
 		})
 	}
@@ -204,7 +268,7 @@ func processNext() {
 
 	wsConn.WriteJSON(Message{
 		Type: "status",
-		Msg:  "Waiting for host approval…",
+		Msg:  encrypt("Waiting for host approval…"),
 	})
 
 	wsConn.WriteJSON(Message{
@@ -245,7 +309,7 @@ func startShell() {
 				continue
 			}
 			fmt.Println(text)
-			wsConn.WriteJSON(Message{Type: "stdout", Data: text + "\n"})
+			wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(text + "\n")})
 		}
 	}()
 
@@ -254,7 +318,7 @@ func startShell() {
 		for scanner.Scan() {
 			text := scanner.Text()
 			fmt.Fprintln(os.Stderr, text)
-			wsConn.WriteJSON(Message{Type: "stderr", Data: text + "\n"})
+			wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(text + "\n")})
 		}
 	}()
 }
@@ -304,7 +368,7 @@ func runCommand(line string) {
 	case "pwd":
 		dir, _ := os.Getwd()
 		fmt.Println(dir)
-		wsConn.WriteJSON(Message{Type: "stdout", Data: dir + "\n"})
+		wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(dir + "\n")})
 	case "clear", "cls":
 		mu.Lock()
 		shellBusy = false
@@ -313,7 +377,7 @@ func runCommand(line string) {
 		sendPrompt(true)
 		return
 	case "exit", "quit":
-		wsConn.WriteJSON(Message{Type: "stdout", Data: "Session ended.\n"})
+		wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("Session ended.\n")})
 		os.Exit(0)
 	}
 
@@ -326,7 +390,7 @@ func runCommand(line string) {
 
 	_, err := shellIn.Write([]byte(wrappedCmd))
 	if err != nil {
-		wsConn.WriteJSON(Message{Type: "stderr", Data: fmt.Sprintf("Failed to run command: %v\n", err)})
+		wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(fmt.Sprintf("Failed to run command: %v\n", err))})
 		mu.Lock()
 		shellBusy = false
 		go processNext()
@@ -362,5 +426,29 @@ func sendPrompt(leadingNewline bool) {
 	if leadingNewline {
 		prompt = "\n" + prompt
 	}
-	wsConn.WriteJSON(Message{Type: "stdout", Data: prompt})
+	wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(prompt)})
+}
+
+func initLogger(roomCode string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	logDir := filepath.Join(home, ".gatekeeper", "logs")
+	os.MkdirAll(logDir, 0700)
+	logPath := filepath.Join(logDir, fmt.Sprintf("session_%s.log", roomCode))
+	
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	if err == nil {
+		auditLogFile = f
+		logAudit("SESSION_START", "SYSTEM")
+	}
+}
+
+func logAudit(action, source string) {
+	if auditLogFile != nil {
+		timestamp := time.Now().UTC().Format(time.RFC3339)
+		entry := fmt.Sprintf("[%s] [%s] %s\n", timestamp, source, action)
+		auditLogFile.WriteString(entry)
+	}
 }

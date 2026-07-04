@@ -24,31 +24,41 @@ var upgrader = websocket.Upgrader{
 }
 
 type Message struct {
-	Type    string   `json:"type"`
-	Data    string   `json:"data,omitempty"`
-	Command string   `json:"command,omitempty"`
-	Msg     string   `json:"msg,omitempty"`
-	Hits    []string `json:"hits,omitempty"`
-	Prefix  string   `json:"prefix,omitempty"`
-	// room-aware fields
-	RoomCode string `json:"roomCode,omitempty"`
-	GuestURL string `json:"guestURL,omitempty"`
-	Queue    int    `json:"queue,omitempty"`
+	Type     string   `json:"type"`
+	Data     string   `json:"data,omitempty"`
+	Command  string   `json:"command,omitempty"`
+	Msg      string   `json:"msg,omitempty"`
+	Hits     []string `json:"hits,omitempty"`
+	Prefix   string   `json:"prefix,omitempty"`
+	RoomCode string   `json:"roomCode,omitempty"`
+	GuestURL string   `json:"guestURL,omitempty"`
+	Queue    int      `json:"queue,omitempty"`
+}
+
+type Client struct {
+	room *Room
+	conn *websocket.Conn
+	send chan Message
+	role string // "host" or "guest"
 }
 
 type Room struct {
-	mu         sync.Mutex
 	Code       string
-	Host       *websocket.Conn
-	Guests     map[*websocket.Conn]bool
-	GuestCount int // total guests ever connected
+	Host       *Client
+	Guests     map[*Client]bool
+	broadcast  chan Message
+	register   chan *Client
+	unregister chan *Client
+
+	mu         sync.Mutex // Protects metadata and Guests map during iteration
+	GuestCount int
 }
 
 var (
-	roomsMu    sync.RWMutex
-	rooms      = make(map[string]*Room)
-	baseDir    string
-	port       = "8080"
+	roomsMu     sync.RWMutex
+	rooms       = make(map[string]*Room)
+	baseDir     string
+	port        = "8080"
 	serverStart = time.Now()
 	totalConns  int64
 	connsMu     sync.Mutex
@@ -63,7 +73,7 @@ func init() {
 		}
 	}
 	baseDir = "."
-	
+
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}
@@ -113,11 +123,16 @@ func newRoom() *Room {
 		}
 	}
 	r := &Room{
-		Code:   code,
-		Guests: make(map[*websocket.Conn]bool),
+		Code:       code,
+		Guests:     make(map[*Client]bool),
+		broadcast:  make(chan Message),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
 	}
 	rooms[code] = r
 	roomsMu.Unlock()
+
+	go r.run() // Start the highly concurrent Hub goroutine
 	log.Printf("[room %s] created", code)
 	return r
 }
@@ -130,25 +145,107 @@ func (r *Room) destroy() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for g := range r.Guests {
-		g.WriteJSON(Message{Type: "stderr", Data: "\nHost disconnected — session ended.\n"})
-		g.Close()
+	for guest := range r.Guests {
+		select {
+		case guest.send <- Message{Type: "stderr", Data: "\nHost disconnected — session ended.\n"}:
+		default:
+		}
+		close(guest.send)
+		delete(r.Guests, guest)
 	}
 	log.Printf("[room %s] destroyed", r.Code)
 }
 
-func (r *Room) broadcastToGuests(msg Message) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for g := range r.Guests {
-		if err := g.WriteJSON(msg); err != nil {
-			delete(r.Guests, g)
-			g.Close()
+// run is the central message router for the room.
+// It handles all synchronization and prevents Head-of-Line blocking.
+func (r *Room) run() {
+	for {
+		select {
+		case client := <-r.register:
+			if client.role == "guest" {
+				r.mu.Lock()
+				r.Guests[client] = true
+				r.GuestCount++
+				r.mu.Unlock()
+				log.Printf("[room %s] guest connected", r.Code)
+			} else {
+				r.Host = client
+				log.Printf("[room %s] host connected", r.Code)
+			}
+
+		case client := <-r.unregister:
+			if client.role == "guest" {
+				r.mu.Lock()
+				if _, ok := r.Guests[client]; ok {
+					delete(r.Guests, client)
+					close(client.send)
+					log.Printf("[room %s] guest disconnected", r.Code)
+				}
+				r.mu.Unlock()
+			} else if client.role == "host" {
+				log.Printf("[room %s] host disconnected", r.Code)
+				r.destroy()
+				return // Terminate the room's goroutine
+			}
+
+		case message := <-r.broadcast:
+			// Route messages based on type
+			if message.Type == "submit_command" || message.Type == "complete" || message.Type == "approval_request" {
+				// Guest commands go ONLY to the host
+				if r.Host != nil {
+					select {
+					case r.Host.send <- message:
+					default:
+						// Host channel buffer full or dead
+					}
+				}
+			} else {
+				// Host outputs (stdout, stderr, status) go to all guests
+				r.mu.Lock()
+				for guest := range r.Guests {
+					select {
+					case guest.send <- message:
+					default:
+						// Guest is too slow, their channel is full.
+						// Disconnect them to prevent holding up the server.
+						close(guest.send)
+						delete(r.Guests, guest)
+					}
+				}
+				r.mu.Unlock()
+			}
+		}
+	}
+}
+
+func (c *Client) readPump() {
+	defer func() {
+		c.room.unregister <- c
+		c.conn.Close()
+	}()
+	for {
+		var msg Message
+		if err := c.conn.ReadJSON(&msg); err != nil {
+			break
+		}
+		c.room.broadcast <- msg
+	}
+}
+
+func (c *Client) writePump() {
+	defer c.conn.Close()
+	for msg := range c.send {
+		if err := c.conn.WriteJSON(msg); err != nil {
+			return
 		}
 	}
 }
 
 func handleWebSocket(w http.ResponseWriter, req *http.Request) {
+	connsMu.Lock()
+	totalConns++
+	connsMu.Unlock()
+
 	role := req.URL.Query().Get("role")
 	if role != "host" {
 		role = "guest"
@@ -162,18 +259,17 @@ func handleWebSocket(w http.ResponseWriter, req *http.Request) {
 
 	if role == "host" {
 		r := newRoom()
-		r.mu.Lock()
-		r.Host = conn
-		r.mu.Unlock()
+		client := &Client{room: r, conn: conn, send: make(chan Message, 256), role: "host"}
+		r.register <- client
 
-		conn.WriteJSON(Message{
+		client.send <- Message{
 			Type:     "room_info",
 			RoomCode: r.Code,
 			GuestURL: guestURL(r.Code, req.Host),
-		})
+		}
 
-		log.Printf("[room %s] host connected", r.Code)
-		go hostLoop(conn, r)
+		go client.writePump()
+		go client.readPump()
 
 	} else {
 		code := req.URL.Query().Get("code")
@@ -188,74 +284,14 @@ func handleWebSocket(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		r.mu.Lock()
-		r.Guests[conn] = true
-		r.mu.Unlock()
+		client := &Client{room: r, conn: conn, send: make(chan Message, 256), role: "guest"}
+		r.register <- client
 
-		log.Printf("[room %s] guest connected", r.Code)
-		go guestLoop(conn, r)
+		go client.writePump()
+		go client.readPump()
 	}
 }
 
-func hostLoop(conn *websocket.Conn, r *Room) {
-	defer func() {
-		conn.Close()
-		log.Printf("[room %s] host disconnected", r.Code)
-		r.destroy()
-	}()
-
-	for {
-		_, raw, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-
-		var msg Message
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			continue
-		}
-
-		// Host sends stdout, stderr, completions, and status updates back to guests
-		switch msg.Type {
-		case "stdout", "stderr", "exit", "completions", "status":
-			r.broadcastToGuests(msg)
-		}
-	}
-}
-
-func guestLoop(conn *websocket.Conn, r *Room) {
-	defer func() {
-		r.mu.Lock()
-		delete(r.Guests, conn)
-		r.mu.Unlock()
-		conn.Close()
-		log.Printf("[room %s] guest disconnected", r.Code)
-	}()
-
-	for {
-		_, raw, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-
-		var msg Message
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			continue
-		}
-
-		// Guest sends commands to the host
-		if msg.Type == "submit_command" || msg.Type == "complete" || msg.Type == "approval_request" {
-			r.mu.Lock()
-			if r.Host != nil {
-				r.Host.WriteMessage(websocket.TextMessage, raw)
-			}
-			r.mu.Unlock()
-		}
-	}
-}
-
-// handleHealth responds with the current server status, uptime, active rooms, and total connections.
-// It is used by Render for monitoring application health.
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	roomsMu.RLock()
 	activeRooms := len(rooms)
@@ -310,7 +346,6 @@ func main() {
 	http.HandleFunc("/stats", handleStats)
 	http.HandleFunc("/ws", handleWebSocket)
 
-	// Serve static files for the guest client
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" || filepath.Ext(r.URL.Path) != "" {
 			fs.ServeHTTP(w, r)
@@ -322,7 +357,7 @@ func main() {
 	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
 	fmt.Println("║         🛡️   GATEKEEPER SHELL CLOUD RELAY SERVER            ║")
 	fmt.Println("╠══════════════════════════════════════════════════════════════╣")
-	fmt.Printf( "║  Listening on port: %-40s ║\n", port)
+	fmt.Printf("║  Listening on port: %-40s ║\n", port)
 	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
