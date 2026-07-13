@@ -22,5 +22,5 @@ jobs:
         with:
           dirtyLabel: "has conflicts"
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          commentOnDirty: "Hey @${author}, this PR has developed a merge conflict with `master`. Could you please pull the latest `master` and resolve the conflict so we can get this merged? Thanks! 🚀"
+          commentOnDirty: "Hey @{author}, this PR has developed a merge conflict with `master`. Could you please pull the latest `master` and resolve the conflict so we can get this merged? Thanks! 🚀"
           commentOnClean: "Merge conflicts have been successfully resolved. Thanks! ✅"
