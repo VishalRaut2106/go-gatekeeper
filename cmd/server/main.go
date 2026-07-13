@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"golang.org/x/time/rate"
 )
 
 var upgrader = websocket.Upgrader{
@@ -241,7 +242,58 @@ func (c *Client) writePump() {
 	}
 }
 
+var (
+	ipLimiters sync.Map // map[string]*rate.Limiter
+)
+
+// clientIP extracts the real client IP, accounting for Render's reverse
+// proxy. Trusts X-Forwarded-For first (first hop = original client),
+// falls back to X-Real-IP, then RemoteAddr for direct/local connections.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		return strings.TrimSpace(strings.Split(xff, ",")[0])
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// allowConnection enforces 10 WebSocket upgrade requests per minute per IP.
+func allowConnection(ip string) bool {
+	limiterI, _ := ipLimiters.LoadOrStore(ip, rate.NewLimiter(rate.Every(6*time.Second), 10))
+	limiter := limiterI.(*rate.Limiter)
+	return limiter.Allow()
+}
+
+// cleanupStaleLimiters periodically evicts limiters that are fully idle
+// (token bucket back at full burst capacity) so ipLimiters doesn't grow
+// unbounded over long-running server uptime.
+func cleanupStaleLimiters() {
+	for {
+		time.Sleep(10 * time.Minute)
+		ipLimiters.Range(func(key, value interface{}) bool {
+			limiter := value.(*rate.Limiter)
+			if limiter.Tokens() >= 10 {
+				ipLimiters.Delete(key)
+			}
+			return true
+		})
+	}
+}
+
 func handleWebSocket(w http.ResponseWriter, req *http.Request) {
+	ip := clientIP(req)
+	if !allowConnection(ip) {
+		http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+		log.Printf("rate limit: rejected %s", ip)
+		return
+	}
+
 	connsMu.Lock()
 	totalConns++
 	connsMu.Unlock()
@@ -339,6 +391,8 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	go cleanupStaleLimiters()
+
 	webDir := filepath.Join(baseDir, "web")
 	fs := http.FileServer(http.Dir(webDir))
 
