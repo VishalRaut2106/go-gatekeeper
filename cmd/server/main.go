@@ -81,27 +81,11 @@ func init() {
 
 func generateCode() string {
 	b := make([]byte, 3)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
-func getLocalIP() string {
-	ifaces, _ := net.Interfaces()
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addrs, _ := iface.Addrs()
-		for _, addr := range addrs {
-			if ipnet, ok := addr.(*net.IPNet); ok {
-				if ip4 := ipnet.IP.To4(); ip4 != nil {
-					return ip4.String()
-				}
-			}
-		}
-	}
-	return "localhost"
-}
+
 
 func guestURL(code string, reqHost string) string {
 	scheme := "http"
@@ -278,8 +262,8 @@ func handleWebSocket(w http.ResponseWriter, req *http.Request) {
 		roomsMu.RUnlock()
 
 		if !ok || code == "" {
-			conn.WriteJSON(Message{Type: "stderr", Data: "Invalid or expired session code."})
-			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4001, "invalid code"))
+			_ = conn.WriteJSON(Message{Type: "stderr", Data: "Invalid or expired session code."})
+			_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4001, "invalid code"))
 			conn.Close()
 			return
 		}
@@ -303,7 +287,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":      "ok",
 		"uptime":      time.Since(serverStart).String(),
 		"activeRooms": activeRooms,
@@ -332,7 +316,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	roomsMu.RUnlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"rooms":  infos,
 		"uptime": time.Since(serverStart).String(),
 	})

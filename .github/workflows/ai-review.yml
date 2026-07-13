@@ -1,0 +1,142 @@
+name: Mistral AI Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write   # needed to post review comments
+
+jobs:
+  ai-review:
+    name: Mistral AI Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # We checkout the pull request base to diff against it safely.
+          # For pull_request_target, we shouldn't execute the PR code.
+          # Here we just need the git history to run gh pr diff.
+
+      - name: Get PR diff and Context
+        id: context
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          
+          # Fetch the diff
+          DIFF=$(gh pr diff $PR_NUM | head -c 8000)
+          
+          if [ -z "$DIFF" ]; then
+            echo "No file changes in this PR — skipping Mistral review."
+            echo "empty=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Fetch PR title, body, and comments for context
+          CONTEXT=$(gh pr view $PR_NUM --json title,body,comments -q '
+            "Title: " + .title + "\n\n" +
+            "Description:\n" + .body + "\n\n" +
+            "Comments:\n" + (.comments | map("@" + .author.login + ": " + .body) | join("\n\n"))
+          ' | head -c 8000)
+          
+          echo "$DIFF" > /tmp/pr_diff.txt
+          echo "$CONTEXT" > /tmp/pr_context.txt
+          echo "empty=false" >> $GITHUB_OUTPUT
+
+      - name: Review with Mistral
+        id: mistral
+        if: steps.context.outputs.empty != 'true'
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: |
+          DIFF=$(cat /tmp/pr_diff.txt)
+          CONTEXT=$(cat /tmp/pr_context.txt)
+
+          # Build request using standard OpenAI format for Mistral completions
+          REQUEST=$(jq -n \
+            --arg diff "$DIFF" \
+            --arg context "$CONTEXT" \
+            '{
+              "model": "codestral-latest",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are a senior staff software engineer conducting a peer code review. Provide direct, objective, and actionable feedback on the code changes. Focus on: bugs, security issues, performance bottlenecks, idiomatic Go conventions, and robust error handling. Do not include introductory greetings, conversational filler, or self-references to being an AI. Start directly with the feedback."
+                },
+                {
+                  "role": "user",
+                  "content": ("Here is the PR Context (Title, Description, and Comments) to understand what the maintainer requested:\n\n" + $context + "\n\n---\nHere is the diff to review:\n\n" + $diff)
+                }
+              ],
+              "temperature": 0.1,
+              "max_tokens": 1024
+            }')
+
+          # Call Mistral API
+          HTTP_STATUS=$(curl -s -o /tmp/mistral_raw.json -w "%{http_code}" \
+            "https://api.mistral.ai/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $MISTRAL_API_KEY" \
+            -d "$REQUEST")
+
+          echo "=== HTTP Status: $HTTP_STATUS ==="
+          if [ "$HTTP_STATUS" = "200" ]; then
+            jq -r '.choices[0].message.content // "No issues identified in these changes."' \
+              /tmp/mistral_raw.json > /tmp/mistral_review.txt
+            echo "review_ready=true" >> $GITHUB_OUTPUT
+          elif [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "403" ]; then
+            echo "Authentication failed. Please verify the MISTRAL_API_KEY in repository secrets." \
+              > /tmp/mistral_review.txt
+            echo "review_ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "Code review automation encountered an error (HTTP $HTTP_STATUS)." \
+              > /tmp/mistral_review.txt
+            echo "review_ready=true" >> $GITHUB_OUTPUT
+          fi
+
+          echo "=== Review Output ==="
+          cat /tmp/mistral_review.txt
+
+      - name: Post review comment
+        if: steps.mistral.outputs.review_ready == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/mistral_review.txt', 'utf8').trim();
+
+            // Fetch existing comments on the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            // Find and delete any previous review comments from this bot to prevent thread clutter
+            const previousBotComments = comments.filter(c => c.user.login === 'github-actions[bot]');
+            for (const comment of previousBotComments) {
+              try {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id,
+                });
+              } catch (err) {
+                console.log(`Failed to delete comment ${comment.id}: ${err.message}`);
+              }
+            }
+
+            // Post the clean, professional review
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: review
+            });

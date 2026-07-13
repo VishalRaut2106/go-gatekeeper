@@ -58,7 +58,7 @@ var (
 
 func initE2E() {
 	e2eKey = make([]byte, 32)
-	rand.Read(e2eKey)
+	_, _ = rand.Read(e2eKey)
 }
 
 func encrypt(text string) string {
@@ -74,7 +74,7 @@ func encrypt(text string) string {
 		return text
 	}
 	nonce := make([]byte, gcm.NonceSize())
-	rand.Read(nonce)
+	_, _ = rand.Read(nonce)
 	ciphertext := gcm.Seal(nonce, nonce, []byte(text), nil)
 	return base64.RawURLEncoding.EncodeToString(ciphertext)
 }
@@ -208,7 +208,7 @@ func main() {
 				promptPrinted = false
 
 				if ans == "" || ans == "y" {
-					wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
+					_ = wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
 
 					mu.Lock()
 					shellBusy = true
@@ -218,15 +218,15 @@ func main() {
 					runCommand(cmd.Command)
 				} else {
 					logAudit(cmd.Command, "GUEST_DENIED")
-					wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
-					wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt("\nCommand denied by host.\n")})
+					_ = wsConn.WriteJSON(Message{Type: "status", Msg: encrypt("")})
+					_ = wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt("\nCommand denied by host.\n")})
 					sendPrompt(true)
 					processNext()
 				}
 				printHostPrompt(false)
 			} else {
 				if line != "" {
-					wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("\x1b[32m$ " + line + "\x1b[0m\n")})
+					_ = wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("\x1b[32m$ " + line + "\x1b[0m\n")})
 					mu.Lock()
 					shellBusy = true
 					mu.Unlock()
@@ -248,7 +248,7 @@ func enqueue(cmd string) {
 	if active == nil && !shellBusy {
 		go processNext()
 	} else {
-		wsConn.WriteJSON(Message{
+		_ = wsConn.WriteJSON(Message{
 			Type:  "status",
 			Msg:   encrypt(fmt.Sprintf("Queued (position %d) — waiting for current command…", len(queue))),
 			Queue: len(queue),
@@ -266,12 +266,12 @@ func processNext() {
 	active = &queue[0]
 	queue = queue[1:]
 
-	wsConn.WriteJSON(Message{
+	_ = wsConn.WriteJSON(Message{
 		Type: "status",
 		Msg:  encrypt("Waiting for host approval…"),
 	})
 
-	wsConn.WriteJSON(Message{
+	_ = wsConn.WriteJSON(Message{
 		Type:    "approval_request",
 		Command: active.Command,
 		Queue:   len(queue),
@@ -309,7 +309,7 @@ func startShell() {
 				continue
 			}
 			fmt.Println(text)
-			wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(text + "\n")})
+			_ = wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(text + "\n")})
 		}
 	}()
 
@@ -318,7 +318,7 @@ func startShell() {
 		for scanner.Scan() {
 			text := scanner.Text()
 			fmt.Fprintln(os.Stderr, text)
-			wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(text + "\n")})
+			_ = wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(text + "\n")})
 		}
 	}()
 }
@@ -365,14 +365,14 @@ func runCommand(line string) {
 		if target == "~" {
 			target, _ = os.UserHomeDir()
 		}
-		os.Chdir(target)
+		_ = os.Chdir(target)
 		if isWin {
 			line = fmt.Sprintf("Set-Location '%s'", target)
 		}
 	case "pwd":
 		dir, _ := os.Getwd()
 		fmt.Println(dir)
-		wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(dir + "\n")})
+		_ = wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(dir + "\n")})
 	case "clear", "cls":
 		mu.Lock()
 		shellBusy = false
@@ -381,7 +381,7 @@ func runCommand(line string) {
 		sendPrompt(true)
 		return
 	case "exit", "quit":
-		wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("Session ended.\n")})
+		_ = wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt("Session ended.\n")})
 		os.Exit(0)
 	}
 
@@ -394,7 +394,7 @@ func runCommand(line string) {
 
 	_, err := shellIn.Write([]byte(wrappedCmd))
 	if err != nil {
-		wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(fmt.Sprintf("Failed to run command: %v\n", err))})
+		_ = wsConn.WriteJSON(Message{Type: "stderr", Data: encrypt(fmt.Sprintf("Failed to run command: %v\n", err))})
 		mu.Lock()
 		shellBusy = false
 		go processNext()
@@ -430,7 +430,7 @@ func sendPrompt(leadingNewline bool) {
 	if leadingNewline {
 		prompt = "\n" + prompt
 	}
-	wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(prompt)})
+	_ = wsConn.WriteJSON(Message{Type: "stdout", Data: encrypt(prompt)})
 }
 
 func initLogger(roomCode string) {
@@ -439,7 +439,7 @@ func initLogger(roomCode string) {
 		return
 	}
 	logDir := filepath.Join(home, ".gatekeeper", "logs")
-	os.MkdirAll(logDir, 0700)
+	_ = os.MkdirAll(logDir, 0700)
 	logPath := filepath.Join(logDir, fmt.Sprintf("session_%s.log", roomCode))
 	
 	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
@@ -453,6 +453,6 @@ func logAudit(action, source string) {
 	if auditLogFile != nil {
 		timestamp := time.Now().UTC().Format(time.RFC3339)
 		entry := fmt.Sprintf("[%s] [%s] %s\n", timestamp, source, action)
-		auditLogFile.WriteString(entry)
+		_, _ = auditLogFile.WriteString(entry)
 	}
 }
