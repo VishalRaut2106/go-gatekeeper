@@ -179,6 +179,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           cursorOffset++;
           term.write(data);
         }
+      } else if (data === '\x1b[H' || data === '\x1b[1~') { // Home Key
+        if (cursorOffset < inputBuffer.length) {
+          const moveCount = inputBuffer.length - cursorOffset;
+          term.write('\x1b[D'.repeat(moveCount));
+          cursorOffset = inputBuffer.length;
+        }
+      } else if (data === '\x1b[F' || data === '\x1b[4~') { // End Key
+        if (cursorOffset > 0) {
+          const moveCount = cursorOffset;
+          term.write('\x1b[C'.repeat(moveCount));
+          cursorOffset = 0;
+        }
       }
       return;
     }
