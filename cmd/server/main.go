@@ -222,7 +222,11 @@ func (c *Client) readPump() {
 		if err := c.conn.ReadJSON(&msg); err != nil {
 			break
 		}
-		c.room.broadcast <- msg
+		select {
+		case c.room.broadcast <- msg:
+		case <-c.room.done:
+			return
+		}
 	}
 }
 
@@ -330,10 +334,15 @@ func handleWebSocket(w http.ResponseWriter, req *http.Request) {
 		}
 
 		client := &Client{room: r, conn: conn, send: make(chan Message, 256), role: "guest"}
-		r.register <- client
-
-		go client.writePump()
-		go client.readPump()
+		select {
+		case r.register <- client:
+			go client.writePump()
+			go client.readPump()
+		case <-r.done:
+			_ = conn.WriteJSON(Message{Type: "stderr", Data: "Host disconnected — session ended."})
+			_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4002, "room closed"))
+			conn.Close()
+		}
 	}
 }
 
