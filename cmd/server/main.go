@@ -87,6 +87,8 @@ func generateCode() string {
 	// (up from 3 bytes / 6 chars / ~16.7M), as defense-in-depth now
 	// that /stats no longer hands codes out directly.
 	b := make([]byte, 5)
+	// crypto/rand.Read only errors if the system CSPRNG is unavailable,
+	// which is effectively unrecoverable — ignoring is standard practice here.
 	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
 }
