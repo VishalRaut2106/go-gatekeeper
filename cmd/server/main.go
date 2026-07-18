@@ -27,12 +27,24 @@ func isAllowedOrigin(origin string) bool {
 	if origin == "" {
 		return true
 	}
+	// Some sandboxed browser contexts send "null" as the Origin value.
+	if origin == "null" {
+		return false
+	}
+
 	u, err := url.Parse(origin)
 	if err != nil {
 		log.Printf("isAllowedOrigin: failed to parse Origin %q: %v", origin, err)
 		return false
 	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return false
+	}
 	host := strings.ToLower(u.Hostname())
+	if host == "" {
+		return false
+	}
 	if host == "localhost" || host == "127.0.0.1" {
 		return true
 	}
