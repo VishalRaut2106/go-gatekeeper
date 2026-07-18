@@ -119,3 +119,23 @@ func TestRateLimitRejectsExcessRequests(t *testing.T) {
 		t.Fatalf("expected at least one 429 after 11 rapid requests from the same IP, got none")
 	}
 }
+
+func TestStatsDoesNotExposeRoomCode(t *testing.T) {
+	newRoom() // ensure at least one active room exists
+
+	req := httptest.NewRequest("GET", "/stats", nil)
+	w := httptest.NewRecorder()
+	handleStats(w, req)
+
+	body := w.Body.String()
+	if strings.Contains(body, `"code"`) {
+		t.Fatalf("/stats response must not contain a \"code\" field, got: %s", body)
+	}
+}
+
+func TestGenerateCodeEntropy(t *testing.T) {
+	code := generateCode()
+	if len(code) != 10 {
+		t.Errorf("expected generateCode() to produce a 10-char code (5 random bytes), got %d chars: %q", len(code), code)
+	}
+}

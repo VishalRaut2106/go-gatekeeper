@@ -83,12 +83,13 @@ func init() {
 }
 
 func generateCode() string {
-	b := make([]byte, 3)
+	// 5 random bytes -> 10 hex chars, ~1.1 trillion possible codes
+	// (up from 3 bytes / 6 chars / ~16.7M), as defense-in-depth now
+	// that /stats no longer hands codes out directly.
+	b := make([]byte, 5)
 	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
 }
-
-
 
 func guestURL(code string, reqHost string) string {
 	scheme := "http"
@@ -359,16 +360,17 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func handleStats(w http.ResponseWriter, r *http.Request) {
 	roomsMu.RLock()
+	// Intentionally does NOT expose room.Code here — /stats is
+	// unauthenticated, and leaking codes would let anyone join any
+	// active session as a guest without brute-forcing anything.
 	type roomInfo struct {
-		Code       string `json:"code"`
-		Guests     int    `json:"guests"`
-		GuestCount int    `json:"totalGuests"`
+		Guests     int `json:"guests"`
+		GuestCount int `json:"totalGuests"`
 	}
 	var infos []roomInfo
 	for _, room := range rooms {
 		room.mu.Lock()
 		infos = append(infos, roomInfo{
-			Code:       room.Code,
 			Guests:     len(room.Guests),
 			GuestCount: room.GuestCount,
 		})
