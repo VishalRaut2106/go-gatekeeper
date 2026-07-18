@@ -72,10 +72,11 @@ func init() {
 		d := filepath.Dir(p)
 		if _, err2 := os.Stat(filepath.Join(d, "web")); err2 == nil {
 			baseDir = d
-			return
 		}
 	}
-	baseDir = "."
+	if baseDir == "" {
+		baseDir = "."
+	}
 
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
