@@ -63,6 +63,15 @@ jobs:
           echo "=== Built binaries ==="
           ls -lh dist/
 
+      # ── Generate checksums for integrity verification ─────────────────────
+      - name: Generate Checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+          echo "=== Checksums ==="
+          cat checksums.txt
+          cd ..
+
       # ── Create GitHub Release with all binaries ──────────────────────────
       - name: Create GitHub Release
         id: create_release
