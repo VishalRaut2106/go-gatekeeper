@@ -119,3 +119,41 @@ func TestRateLimitRejectsExcessRequests(t *testing.T) {
 		t.Fatalf("expected at least one 429 after 11 rapid requests from the same IP, got none")
 	}
 }
+
+func TestShutdownServerDrainsActiveRooms(t *testing.T) {
+	r := newRoom()
+	host := &Client{room: r, send: make(chan Message, 4), role: "host"}
+	guest := &Client{room: r, send: make(chan Message, 4), role: "guest"}
+
+	r.mu.Lock()
+	r.Host = host
+	r.Guests[guest] = true
+	r.mu.Unlock()
+
+	shutdownServer()
+
+	select {
+	case msg := <-host.send:
+		if msg.Data == "" {
+			t.Errorf("expected non-empty shutdown notice for host")
+		}
+	default:
+		t.Errorf("expected host to receive a shutdown notice")
+	}
+
+	select {
+	case msg := <-guest.send:
+		if msg.Data == "" {
+			t.Errorf("expected non-empty shutdown notice for guest")
+		}
+	default:
+		t.Errorf("expected guest to receive a shutdown notice")
+	}
+
+	roomsMu.RLock()
+	_, exists := rooms[r.Code]
+	roomsMu.RUnlock()
+	if exists {
+		t.Errorf("expected room %s to be removed from rooms map after shutdown", r.Code)
+	}
+}

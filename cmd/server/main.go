@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -9,9 +10,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -87,8 +90,6 @@ func generateCode() string {
 	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
 }
-
-
 
 func guestURL(code string, reqHost string) string {
 	scheme := "http"
@@ -383,6 +384,39 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// shutdownServer notifies every connected client (host + guests) across
+// all active rooms that the server is restarting, then tears each room
+// down via the existing destroy() path (reusing the done/closeOnce
+// machinery from #7/#8) so no goroutines leak during shutdown.
+func shutdownServer() {
+	roomsMu.RLock()
+	active := make([]*Room, 0, len(rooms))
+	for _, r := range rooms {
+		active = append(active, r)
+	}
+	roomsMu.RUnlock()
+
+	notice := Message{Type: "stderr", Data: "\nServer is restarting, please reconnect shortly.\n"}
+	for _, r := range active {
+		r.mu.Lock()
+		if r.Host != nil {
+			select {
+			case r.Host.send <- notice:
+			default:
+			}
+		}
+		for guest := range r.Guests {
+			select {
+			case guest.send <- notice:
+			default:
+			}
+		}
+		r.mu.Unlock()
+		r.destroy()
+	}
+	log.Printf("shutdown: drained %d active room(s)", len(active))
+}
+
 func main() {
 	go cleanupStaleLimiters()
 
@@ -407,7 +441,25 @@ func main() {
 	fmt.Printf("║  Listening on port: %-40s ║\n", port)
 	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("Server: %v", err)
+	srv := &http.Server{Addr: ":" + port}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server: %v", err)
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	<-sigCh
+
+	log.Println("shutdown signal received, draining active rooms...")
+	shutdownServer()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("graceful shutdown error: %v", err)
 	}
+	log.Println("server exited cleanly")
 }
