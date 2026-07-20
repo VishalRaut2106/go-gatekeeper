@@ -176,3 +176,37 @@ func TestShutdownServerDrainsActiveRooms(t *testing.T) {
 		t.Errorf("expected room %s to be removed from rooms map after shutdown", r.Code)
 	}
 }
+
+func TestReadPumpEnforcesMessageSizeLimit(t *testing.T) {
+	ipLimiters = sync.Map{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", handleWebSocket)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws?role=host"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	var roomInfo Message
+	if err := conn.ReadJSON(&roomInfo); err != nil {
+		t.Fatalf("read room_info: %v", err)
+	}
+
+	// Send a message well over maxMessageSize (32KB) — the server should
+	// close the connection rather than allocate unbounded memory for it.
+	oversized := Message{Type: "stdout", Data: strings.Repeat("A", maxMessageSize+1024)}
+	if err := conn.WriteJSON(oversized); err != nil {
+		t.Fatalf("write oversized message: %v", err)
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err = conn.ReadMessage()
+	if err == nil {
+		t.Fatalf("expected connection to be closed after oversized message, but read succeeded")
+	}
+}
