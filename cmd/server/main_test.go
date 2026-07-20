@@ -13,17 +13,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// countGoroutines lets short-lived scheduler noise settle before sampling,
-// so the count reflects genuinely live goroutines, not GC/runtime jitter.
 func countGoroutines() int {
 	runtime.GC()
 	time.Sleep(20 * time.Millisecond)
 	return runtime.NumGoroutine()
 }
 
-// waitForGoroutineCount polls until NumGoroutine drops to at most `want`,
-// or fails the test after timeout. This is the standard idiom for
-// goroutine-leak tests: teardown is async, so we can't assert immediately.
 func waitForGoroutineCount(t *testing.T, want int, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -48,7 +43,6 @@ func TestNoGoroutineLeakOnHostDisconnectWithGuestConnected(t *testing.T) {
 
 	baseline := countGoroutines()
 
-	// --- host connects ---
 	hostConn, _, err := websocket.DefaultDialer.Dial(wsURL+"?role=host", nil)
 	if err != nil {
 		t.Fatalf("host dial: %v", err)
@@ -62,22 +56,16 @@ func TestNoGoroutineLeakOnHostDisconnectWithGuestConnected(t *testing.T) {
 		t.Fatalf("expected room code in room_info, got %+v", roomInfo)
 	}
 
-	// --- guest connects to the same room ---
 	guestURL := fmt.Sprintf("%s?role=guest&code=%s", wsURL, roomInfo.RoomCode)
 	guestConn, _, err := websocket.DefaultDialer.Dial(guestURL, nil)
 	if err != nil {
 		t.Fatalf("guest dial: %v", err)
 	}
 
-	// let both registrations settle on the room's run() goroutine
 	time.Sleep(100 * time.Millisecond)
 
-	// --- simulate host disconnect while a guest is still connected ---
 	hostConn.Close()
 
-	// The server will forcibly close the guest's connection too (via
-	// destroy() closing guest.send). Drain reads until that happens so
-	// this goroutine itself doesn't skew the count.
 	go func() {
 		for {
 			if _, _, err := guestConn.ReadMessage(); err != nil {
@@ -86,8 +74,6 @@ func TestNoGoroutineLeakOnHostDisconnectWithGuestConnected(t *testing.T) {
 		}
 	}()
 
-	// Before the fix, a leaked readPump goroutine per guest means this
-	// never converges back to baseline and the test times out/fails.
 	waitForGoroutineCount(t, baseline+1, 2*time.Second)
 
 	guestConn.Close()
@@ -120,8 +106,38 @@ func TestRateLimitRejectsExcessRequests(t *testing.T) {
 	}
 }
 
+func TestIsAllowedOrigin(t *testing.T) {
+	cases := []struct {
+		name   string
+		origin string
+		want   bool
+	}{
+		{"empty origin (non-browser client)", "", true},
+		{"render.com exact", "https://gatekeeper-relay.onrender.com", true},
+		{"onrender.com subdomain", "https://staging.gatekeeper-relay.onrender.com", true},
+		{"railway.app", "https://myapp.railway.app", true},
+		{"localhost", "http://localhost:3000", true},
+		{"127.0.0.1", "http://127.0.0.1:3000", true},
+		{"vishalraut.me subdomain", "https://gatekeeper.vishalraut.me", true},
+		{"vishalraut.me exact", "https://vishalraut.me", true},
+		{"spoofed lookalike domain", "https://evilrender.com", false},
+		{"spoofed suffix domain", "https://sub.render.com.attacker.net", false},
+		{"unrelated domain", "https://attacker.com", false},
+		{"malformed origin", "not a url", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isAllowedOrigin(tc.origin)
+			if got != tc.want {
+				t.Errorf("isAllowedOrigin(%q) = %v, want %v", tc.origin, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestStatsDoesNotExposeRoomCode(t *testing.T) {
-	newRoom() // ensure at least one active room exists
+	newRoom()
 
 	req := httptest.NewRequest("GET", "/stats", nil)
 	w := httptest.NewRecorder()
@@ -139,6 +155,7 @@ func TestGenerateCodeEntropy(t *testing.T) {
 		t.Errorf("expected generateCode() to produce a 10-char code (5 random bytes), got %d chars: %q", len(code), code)
 	}
 }
+
 func TestShutdownServerDrainsActiveRooms(t *testing.T) {
 	r := newRoom()
 	host := &Client{room: r, send: make(chan Message, 4), role: "host"}
