@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gatekeeper — npm Package Automation & Growth Monitoring</title>
+  <meta name="description" content="Production-ready automation, reliability testing, and npm download analytics for gatekeeper-shell" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-shield">🛡️</div>
+        <div>
+          <span class="brand-title">GATEKEEPER</span>
+          <span class="brand-sub">npm monitor & worker</span>
+        </div>
+      </div>
+      <div class="nav-badges">
+        <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" rel="noreferrer" class="badge-link">
+          <span class="dot npm-dot"></span> npm: <strong id="header-pkg-version">v2.1.2</strong>
+        </a>
+        <div class="worker-pill" id="worker-pill">
+          <span class="pulse-indicator" id="worker-pulse"></span>
+          <span id="worker-status-text">Worker: IDLE</span>
+        </div>
+        <button id="btn-open-settings" class="btn-icon" title="API Key Settings">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    <!-- Notice Banner: Separation of registry metrics & test isolation -->
+    <section class="banner-notice">
+      <div class="banner-icon">ℹ️</div>
+      <div class="banner-content">
+        <h4>Metric Integrity & Reliability Assurance</h4>
+        <p>Registry downloads are reported directly by official npm metrics (<a href="https://api.npmjs.org" target="_blank" rel="noreferrer">api.npmjs.org</a>). Installation tests run in strictly isolated temporary sandboxes with automated cleanup to verify package integrity without generating artificial registry counts.</p>
+      </div>
+    </section>
+
+    <!-- Key Metrics Cards -->
+    <section class="stats-grid">
+      <!-- Card 1: Downloads Overview -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">npm Downloads</span>
+          <span class="badge badge-emerald" id="growth-badge">+0% wk</span>
+        </div>
+        <div class="stat-value" id="stat-downloads-month">0</div>
+        <div class="stat-subtext">
+          <span>7-Day: <strong id="stat-downloads-week">0</strong></span>
+          <span>•</span>
+          <span>Today: <strong id="stat-downloads-day">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 2: Package Version -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Latest Version</span>
+          <span class="badge badge-neutral" id="package-tag">latest</span>
+        </div>
+        <div class="stat-value" id="stat-pkg-version">—</div>
+        <div class="stat-subtext">
+          <span id="stat-pkg-name">gatekeeper-shell</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Test Health Rate -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Worker Success Rate</span>
+          <span class="badge badge-emerald" id="health-badge">100%</span>
+        </div>
+        <div class="stat-value" id="stat-success-rate">—%</div>
+        <div class="stat-subtext">
+          <span>Total runs: <strong id="stat-total-runs">0</strong></span>
+          <span>•</span>
+          <span>Avg: <strong id="stat-avg-duration">0ms</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 4: Worker Action & Schedule -->
+      <div class="stat-card stat-card-action">
+        <div class="stat-header">
+          <span class="stat-label">Installation Automation</span>
+          <span class="badge badge-outline" id="cron-schedule-badge">0 */6 * * *</span>
+        </div>
+        <div class="action-btn-group">
+          <button id="btn-trigger-test" class="btn btn-primary">
+            <span class="btn-spinner" id="btn-spinner" style="display:none;"></span>
+            <span id="btn-text">▶ Run Installation Test</span>
+          </button>
+        </div>
+        <div class="stat-subtext">
+          <span>Last Success: <strong id="stat-last-success">Never</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chart Section: Historical Downloads -->
+    <section class="chart-section">
+      <div class="section-header">
+        <div class="header-titles">
+          <h3>Official npm Downloads Trend</h3>
+          <p class="subtitle">Daily downloads over the past 30 days as reported by npm</p>
+        </div>
+        <div class="chart-actions">
+          <button class="btn-sm btn-outline active" id="btn-refresh-chart">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="downloadsChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Test History Table -->
+    <section class="table-section">
+      <div class="section-header">
+        <div class="header-titles">
+          <h3>Installation Test Runs</h3>
+          <p class="subtitle">Sandboxed verification of gatekeeper-shell package installation and smoke CLI execution</p>
+        </div>
+        <div class="table-actions">
+          <select id="filter-status" class="select-input">
+            <option value="">All Statuses</option>
+            <option value="SUCCESS">Success Only</option>
+            <option value="FAILURE">Failures Only</option>
+            <option value="TIMEOUT">Timeouts Only</option>
+          </select>
+          <button id="btn-refresh-table" class="btn-sm btn-outline">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="tests-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Target Version</th>
+              <th>Installed Version</th>
+              <th>Trigger</th>
+              <th>Duration</th>
+              <th>Executed At</th>
+              <th>Logs</th>
+            </tr>
+          </thead>
+          <tbody id="tests-table-body">
+            <tr>
+              <td colspan="7" class="empty-state">Loading test history...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Test Logs Viewer -->
+  <div class="modal" id="modal-logs">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-log-title">Test Run Details</h3>
+        <button class="btn-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta-grid" id="modal-meta">
+          <!-- Filled by JS -->
+        </div>
+        <div class="log-block">
+          <div class="log-block-header">Stdout / Test Output</div>
+          <pre class="terminal-view" id="modal-stdout">// No output recorded</pre>
+        </div>
+        <div class="log-block" id="modal-stderr-block">
+          <div class="log-block-header log-block-header-err">Stderr / Diagnostics</div>
+          <pre class="terminal-view terminal-err" id="modal-stderr">// No errors</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Admin Settings -->
+  <div class="modal" id="modal-settings">
+    <div class="modal-backdrop" id="settings-backdrop"></div>
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <h3>Admin Configuration</h3>
+        <button class="btn-close" id="btn-close-settings">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-hint">The admin API key is required to manually trigger tests from this dashboard:</p>
+        <div class="form-group">
+          <label for="input-api-key">Admin API Key:</label>
+          <input type="password" id="input-api-key" class="text-input" placeholder="Enter ADMIN_API_KEY..." />
+        </div>
+        <div class="form-group">
+          <label for="input-target-version">Test Version Override (optional):</label>
+          <input type="text" id="input-target-version" class="text-input" placeholder="latest (e.g. 2.1.2)" />
+        </div>
+        <div class="modal-actions">
+          <button id="btn-save-settings" class="btn btn-primary">Save Key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-text">
+        <span>Gatekeeper Automation & Monitoring Server</span> • 
+        <a href="https://gatekeeper.vishalraut.me/" target="_blank" rel="noreferrer">Website</a> • 
+        <a href="https://github.com/VishalRaut2106/go-gatekeeper" target="_blank" rel="noreferrer">GitHub</a> • 
+        <a href="https://www.npmjs.com/package/gatekeeper-shell" target="_blank" rel="noreferrer">npm</a>
+      </div>
+      <div class="footer-status" id="footer-db-status">DB: Connected</div>
+    </div>
+  </footer>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

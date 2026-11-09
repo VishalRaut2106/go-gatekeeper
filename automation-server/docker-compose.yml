@@ -1,0 +1,48 @@
+services:
+  gatekeeper-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gatekeeper-automation-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - HOST=0.0.0.0
+      - NPM_PACKAGE_NAME=${NPM_PACKAGE_NAME:-gatekeeper-shell}
+      - NPM_PACKAGE_VERSION=${NPM_PACKAGE_VERSION:-latest}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-gatekeeper-secret-key-change-me-in-production}
+      - TEST_TIMEOUT_MS=${TEST_TIMEOUT_MS:-90000}
+      - WORKER_CONCURRENCY_LIMIT=${WORKER_CONCURRENCY_LIMIT:-1}
+      - TEST_SCHEDULE_CRON=${TEST_SCHEDULE_CRON:-0 */6 * * *}
+      - ANALYTICS_SCHEDULE_CRON=${ANALYTICS_SCHEDULE_CRON:-0 */3 * * *}
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - SQLITE_DB_PATH=/app/data/gatekeeper_monitor.db
+      # - DATABASE_URL=postgresql://gatekeeper:gatekeeper_pass@postgres:5432/gatekeeper_monitor
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Optional PostgreSQL configuration if DB_TYPE=postgres is selected
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: gatekeeper-monitor-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: gatekeeper
+  #     POSTGRES_PASSWORD: gatekeeper_pass
+  #     POSTGRES_DB: gatekeeper_monitor
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:
