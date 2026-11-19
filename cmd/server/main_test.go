@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -153,6 +156,26 @@ func TestGenerateCodeEntropy(t *testing.T) {
 	code := generateCode()
 	if len(code) != 10 {
 		t.Errorf("expected generateCode() to produce a 10-char code (5 random bytes), got %d chars: %q", len(code), code)
+	}
+}
+
+func TestGenerateCodeFailsOnRandFailure(t *testing.T) {
+	if os.Getenv("GO_GATEKEEPER_RAND_FAILURE") == "1" {
+		cryptoRandRead = func([]byte) (int, error) {
+			return 0, errors.New("simulated CSPRNG failure")
+		}
+		generateCode()
+		os.Exit(0)
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateCodeFailsOnRandFailure$")
+	cmd.Env = append(os.Environ(), "GO_GATEKEEPER_RAND_FAILURE=1")
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatal("generateCode() succeeded after crypto/rand failure")
+	}
+	if !strings.Contains(string(output), "crypto/rand unavailable") {
+		t.Fatalf("generateCode() did not report crypto/rand failure: %s", output)
 	}
 }
 

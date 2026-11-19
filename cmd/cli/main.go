@@ -52,13 +52,16 @@ var (
 	shellOut io.ReadCloser
 	shellErr io.ReadCloser
 
-	e2eKey       []byte
-	auditLogFile *os.File
+	e2eKey         []byte
+	auditLogFile   *os.File
+	cryptoRandRead = rand.Read
 )
 
 func initE2E() {
 	e2eKey = make([]byte, 32)
-	_, _ = rand.Read(e2eKey)
+	if _, err := cryptoRandRead(e2eKey); err != nil {
+		log.Fatalf("crypto/rand unavailable: %v", err)
+	}
 }
 
 func encrypt(text string) string {
@@ -74,7 +77,9 @@ func encrypt(text string) string {
 		return text
 	}
 	nonce := make([]byte, gcm.NonceSize())
-	_, _ = rand.Read(nonce)
+	if _, err := cryptoRandRead(nonce); err != nil {
+		log.Fatalf("crypto/rand unavailable: %v", err)
+	}
 	ciphertext := gcm.Seal(nonce, nonce, []byte(text), nil)
 	return base64.RawURLEncoding.EncodeToString(ciphertext)
 }

@@ -107,13 +107,14 @@ type Room struct {
 }
 
 var (
-	roomsMu     sync.RWMutex
-	rooms       = make(map[string]*Room)
-	baseDir     string
-	port        = "8080"
-	serverStart = time.Now()
-	totalConns  int64
-	connsMu     sync.Mutex
+	roomsMu        sync.RWMutex
+	rooms          = make(map[string]*Room)
+	baseDir        string
+	port           = "8080"
+	serverStart    = time.Now()
+	totalConns     int64
+	connsMu        sync.Mutex
+	cryptoRandRead = rand.Read
 )
 
 func init() {
@@ -137,9 +138,9 @@ func generateCode() string {
 	// (up from 3 bytes / 6 chars / ~16.7M), as defense-in-depth now
 	// that /stats no longer hands codes out directly.
 	b := make([]byte, 5)
-	// crypto/rand.Read only errors if the system CSPRNG is unavailable,
-	// which is effectively unrecoverable — ignoring is standard practice here.
-	_, _ = rand.Read(b)
+	if _, err := cryptoRandRead(b); err != nil {
+		log.Fatalf("crypto/rand unavailable: %v", err)
+	}
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
