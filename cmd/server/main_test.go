@@ -119,14 +119,23 @@ func TestIsAllowedOrigin(t *testing.T) {
 		{"render.com exact", "https://gatekeeper-relay.onrender.com", true},
 		{"onrender.com subdomain", "https://staging.gatekeeper-relay.onrender.com", true},
 		{"railway.app", "https://myapp.railway.app", true},
-		{"localhost", "http://localhost:3000", true},
-		{"127.0.0.1", "http://127.0.0.1:3000", true},
+		{"fly.dev subdomain", "https://gatekeeper.fly.dev", true},
+		{"ngrok-free.app subdomain", "https://random-subdomain.ngrok-free.app", true},
+		{"ngrok.io subdomain", "https://tunnel.ngrok.io", true},
+		{"ngrok.app subdomain", "https://dev.ngrok.app", true},
+		{"localhost with port", "http://localhost:8080", true},
+		{"localhost 3000", "http://localhost:3000", true},
+		{"127.0.0.1 with port", "http://127.0.0.1:8080", true},
+		{"127.0.0.1 3000", "http://127.0.0.1:3000", true},
 		{"vishalraut.me subdomain", "https://gatekeeper.vishalraut.me", true},
 		{"vishalraut.me exact", "https://vishalraut.me", true},
+		{"null origin", "null", false},
 		{"spoofed lookalike domain", "https://evilrender.com", false},
 		{"spoofed suffix domain", "https://sub.render.com.attacker.net", false},
 		{"unrelated domain", "https://attacker.com", false},
 		{"malformed origin", "not a url", false},
+		{"ftp scheme disallowed", "ftp://gatekeeper.vishalraut.me", false},
+		{"javascript scheme disallowed", "javascript:void(0)", false},
 	}
 
 	for _, tc := range cases {
@@ -134,6 +143,64 @@ func TestIsAllowedOrigin(t *testing.T) {
 			got := isAllowedOrigin(tc.origin)
 			if got != tc.want {
 				t.Errorf("isAllowedOrigin(%q) = %v, want %v", tc.origin, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIsAllowedOriginWithEnvVar(t *testing.T) {
+	orig := os.Getenv("ALLOWED_ORIGINS")
+	defer os.Setenv("ALLOWED_ORIGINS", orig)
+
+	os.Setenv("ALLOWED_ORIGINS", "https://custom.example.com, http://internal.local:9000, allowed-domain.org")
+
+	cases := []struct {
+		name   string
+		origin string
+		want   bool
+	}{
+		{"exact match from env", "https://custom.example.com", true},
+		{"exact match with port from env", "http://internal.local:9000", true},
+		{"domain match from env", "https://allowed-domain.org", true},
+		{"subdomain match from env", "https://sub.allowed-domain.org", true},
+		{"unlisted domain still rejected", "https://disallowed.example.com", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isAllowedOrigin(tc.origin)
+			if got != tc.want {
+				t.Errorf("isAllowedOrigin(%q) with env = %v, want %v", tc.origin, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWebSocketUpgraderCheckOrigin(t *testing.T) {
+	cases := []struct {
+		name       string
+		origin     string
+		wantAccept bool
+	}{
+		{"cli direct (no origin)", "", true},
+		{"legitimate browser gatekeeper domain", "https://gatekeeper.vishalraut.me", true},
+		{"legitimate browser localhost", "http://localhost:8080", true},
+		{"malicious third party website", "https://attacker.com", false},
+		{"null origin in browser sandbox", "null", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "/ws", nil)
+			if err != nil {
+				t.Fatalf("failed to create request: %v", err)
+			}
+			if tc.origin != "" {
+				req.Header.Set("Origin", tc.origin)
+			}
+			accepted := upgrader.CheckOrigin(req)
+			if accepted != tc.wantAccept {
+				t.Errorf("CheckOrigin(Origin: %q) = %v, want %v", tc.origin, accepted, tc.wantAccept)
 			}
 		})
 	}

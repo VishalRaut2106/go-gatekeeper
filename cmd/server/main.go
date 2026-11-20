@@ -22,10 +22,16 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// isAllowedOrigin mirrors the domain patterns already trusted in
-// guestURL() (onrender.com, railway.app, ngrok, fly.dev), plus localhost
-// for local dev. Non-browser clients (CLI, curl) don't send an Origin
-// header at all, so those are allowed through unconditionally.
+// isAllowedOrigin validates incoming WebSocket Origin headers to prevent
+// Cross-Site WebSocket Hijacking (CSRF attacks).
+//
+// Non-browser clients (CLI host and guest, curl) do not send an Origin
+// header, so empty origins are allowed unconditionally.
+//
+// Browser origins are checked against trusted hosting platforms (onrender.com,
+// railway.app, fly.dev, ngrok domains), primary deployment domain (vishalraut.me),
+// localhost/127.0.0.1 for local development, as well as any custom origins
+// provided in the ALLOWED_ORIGINS environment variable (comma-separated).
 func isAllowedOrigin(origin string) bool {
 	if origin == "" {
 		return true
@@ -48,16 +54,44 @@ func isAllowedOrigin(origin string) bool {
 	if host == "" {
 		return false
 	}
+
+	// Local development
 	if host == "localhost" || host == "127.0.0.1" {
 		return true
 	}
-	for _, domain := range []string{
+
+	// Check custom origins from ALLOWED_ORIGINS env var if set
+	if envAllowed := os.Getenv("ALLOWED_ORIGINS"); envAllowed != "" {
+		for _, raw := range strings.Split(envAllowed, ",") {
+			target := strings.TrimSpace(raw)
+			if target == "" {
+				continue
+			}
+			if strings.EqualFold(origin, target) {
+				return true
+			}
+			targetHost := strings.ToLower(target)
+			if parsedTarget, err := url.Parse(target); err == nil && parsedTarget.Hostname() != "" {
+				targetHost = strings.ToLower(parsedTarget.Hostname())
+			}
+			if host == targetHost || strings.HasSuffix(host, "."+targetHost) {
+				return true
+			}
+		}
+	}
+
+	// Trusted domains and subdomains
+	trustedDomains := []string{
 		"onrender.com",
 		"railway.app",
-		"ngrok",
 		"fly.dev",
 		"vishalraut.me",
-	} {
+		"ngrok-free.app",
+		"ngrok.io",
+		"ngrok.app",
+		"ngrok",
+	}
+	for _, domain := range trustedDomains {
 		if host == domain || strings.HasSuffix(host, "."+domain) {
 			return true
 		}
